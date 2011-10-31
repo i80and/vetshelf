@@ -1,0 +1,14 @@
+PEP-8 except where otherwise noted:
+	- Tab indentation.  No arguments on this point.  Be consistent.
+	- 100-column lines, but if readability is not hampered, 79-column is nice.
+	- We use Python 3, but many static analyzers still do not recognize its
+	  syntax.  Consequently, we try to stick to Python 2 syntax wherever
+	  feasible.
+
+Run these regularily.  If your editor has a plugin to run them in realtime,
+all the better.
+$ pep8 --ignore=W191,E501 *.py
+$ pyflakes *.py
+$ pylint --indent-string="\t" --max-line-length=100 *.py
+ 	| pylint is nice, but very noisy.  Try to keep scores above 9.0, but don't
+ 	| sweat it too much.
