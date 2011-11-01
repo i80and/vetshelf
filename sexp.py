@@ -155,3 +155,15 @@ def dump(data):
 			return '"' + escaped + '"'
 
 	return innerdump(data)
+
+
+def maplist(orig):
+	"""Convert a nested list into a key/pair dictionary."""
+	mapping = {}
+	for field in orig:
+		value = field[1:]
+		if len(value) == 1:
+			value = value[0]
+		mapping[field[0]] = value
+
+	return mapping

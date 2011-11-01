@@ -50,3 +50,7 @@ assert error
 print('Testing against unmatched closing paren behavior change')
 parsed = sexp.parse(r'())')
 assert parsed == []
+
+print('Testing maplist')
+parsed = sexp.parse(r'(("key" "value1" "value2") ("key2" "value"))')
+assert sexp.maplist(parsed) == {'key': ['value1', 'value2'], 'key2': 'value'}
