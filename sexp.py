@@ -162,8 +162,6 @@ def maplist(orig):
 	mapping = {}
 	for field in orig:
 		value = field[1:]
-		if len(value) == 1:
-			value = value[0]
 		mapping[field[0]] = value
 
 	return mapping
