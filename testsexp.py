@@ -53,4 +53,8 @@ assert parsed == []
 
 print('Testing maplist')
 parsed = sexp.parse(r'(("key" "value1" "value2") ("key2" "value"))')
-assert sexp.maplist(parsed) == {'key': ['value1', 'value2'], 'key2': ['value']}
+assert sexp.maplist(parsed) == {'key': ['value1', 'value2'], 'key2': 'value'}
+
+print('Testing structure')
+parsed = ['client', 'Bobby Tables', ['396-555-3213', 'bobtables@example.com']]
+assert sexp.structure(parsed, ['type', 'name', 'contact']) == {'type': 'client', 'name': 'Bobby Tables', 'contact': ['396-555-3213', 'bobtables@example.com']}

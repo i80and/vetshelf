@@ -161,7 +161,15 @@ def maplist(orig):
 	"""Convert a nested list into a key/pair dictionary."""
 	mapping = {}
 	for field in orig:
-		value = field[1:]
+		if len(field) > 2:
+			value = field[1:]
+		else:
+			value = field[1]
 		mapping[field[0]] = value
 
 	return mapping
+
+
+def structure(data, keys):
+	"""Convert a list of data into a map, with keys taken positionally."""
+	return maplist(zip(keys, data))
