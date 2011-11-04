@@ -9,6 +9,8 @@ Run these regularily.  If your editor has a plugin to run them in realtime,
 all the better.
 $ pep8 --ignore=W191,E501 *.py
 $ pyflakes *.py
+$ pychecker -q *.py
+	| From the Python 2 era; complains about modern str() and bytes() usage.
 $ pylint --indent-string="\t" --max-line-length=100 *.py
- 	| pylint is nice, but very noisy.  Try to keep scores above 9.0, but don't
- 	| sweat it too much.
+	| pylint is nice, but very noisy.  Try to keep scores above 9.0, but don't
+	| sweat it too much.
