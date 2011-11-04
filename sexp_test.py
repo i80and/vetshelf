@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sexp
 
-tests = {
+TESTS = {
 	'integer atom': (r'9053', 9053, lambda parsed: isinstance(parsed, int)),
 	'float atom': (r'30.54', 30.54, lambda parsed: isinstance(parsed, float)),
 	'string atom': (r'"This is the tale of an \"elephant\""', 'This is the tale of an "elephant"'),
@@ -12,6 +12,7 @@ tests = {
 
 
 def test_generator():
+	"""Generates simple positive tests."""
 	def testcase(test):
 		def inner():
 			print(test)
@@ -29,44 +30,48 @@ def test_generator():
 				assert test[2](parsed)
 		return inner
 
-	for test in tests:
-		yield testcase(tests[test])
+	for test in TESTS:
+		yield testcase(TESTS[test])
 
 
 def test_abornal_seperators():
+	"""Test quirk where no space is necessary between list elements."""
 	parsed = sexp.parse(r'("foo""bar" (90(30)))')
 	assert parsed == ['foo', 'bar', [90, [30]]]
 
 
 def test_unclosed_list_1():
+	"""Ensure that an unclosed list gives an error."""
 	error = False
 	try:
-		parsed = sexp.parse(r'(40 (30')
+		sexp.parse(r'(40 (30')
 	except(sexp.UnclosedList):
 		error = True
 	assert error
 
 
 def test_unclosed_list_2():
+	"""Ensure that an unclosed list gives an error."""
 	error = False
 	try:
-		parsed = sexp.parse(r'("Foobar" ("this" "is")')
+		sexp.parse(r'("Foobar" ("this" "is")')
 	except(sexp.UnclosedList):
 		error = True
 	assert error
 
 
 def test_unmatched_closing_paren():
+	"""Ensure that excess closing parenthesis are ignored."""
 	# XXX: Unmatched closing parens are currently silently ignored.  This is a bug,
 	# but we don't want behavior changing unexpectedly
-	print('Testing against unmatched closing paren behavior change')
 	parsed = sexp.parse(r'())')
 	assert parsed == []
 
-	print('Testing maplist')
 	parsed = sexp.parse(r'(("key" "value1" "value2") ("key2" "value"))')
 	assert sexp.maplist(parsed) == {'key': ['value1', 'value2'], 'key2': 'value'}
 
-	print('Testing structure')
 	parsed = ['client', 'Bobby Tables', ['396-555-3213', 'bobtables@example.com']]
-	assert sexp.structure(parsed, ['type', 'name', 'contact']) == {'type': 'client', 'name': 'Bobby Tables', 'contact': ['396-555-3213', 'bobtables@example.com']}
+	structured = sexp.structure(parsed, ['type', 'name', 'contact'])
+	assert structured == {'type': 'client',
+							'name': 'Bobby Tables',
+							'contact': ['396-555-3213', 'bobtables@example.com']}
