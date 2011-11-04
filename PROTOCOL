@@ -1,0 +1,47 @@
+Errors:
+	("error" "badauth")
+		Incorrect authentication attempt.
+	("error" "malformed")
+		S-expression could not be parsed.
+	("error" "badrequest")
+		While the request syntax was OK, the actual data was nonsensical.
+	("error" "notfound")
+		The requested patient or client does not exist.
+
+<uuid>
+Unique string
+
+<contactinfo>
+(<info> <category> <note>)
+
+<client>
+("client" <uuid> <name> <address> [<patient uuids>] [<contactinfo>] [<notes>])
+
+<patient>
+("patient" <uuid> <name> <species> <breed> <gender> <description> [<notes>])
+
+# Protocol version number
+C: (version?)
+S: <int>
+
+# Authentication
+C: (auth user passwd)
+S: ("ok") || ("error" "badauth")
+
+# Record retrieval
+C: ("get" "client" <uuid>)
+S: <client> || ("error" "notfound")
+
+C: ("get" "patient" <uuid>)
+S: <patient> || ("error" "notfound")
+
+# Record assignment
+C: ("set" "client" <uuid>)
+S: ("ok")
+
+C: ("set" "patient" <uuid>)
+S: ("ok")
+
+# Record search
+C: ("search" [<keywords>])
+S: [<client uuids>]
