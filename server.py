@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-
+import copy
 import socket
 import asyncore
-import sexp
 import database
+import vetmarshal
+import sexp
 
 __author__ = 'Andrew Aldridge'
 __license__ = 'ISC'
@@ -11,33 +12,69 @@ __email__ = 'i80and@gmail.com'
 
 VERSION = 1
 
-PERM_NONE = 0
-PERM_READ = 1
-PERM_WRITE = 2
-
 
 class Permissions(object):
+	READ = 1
+	WRITE = 2
+
 	"""Class representing a connection's permissions."""
-	def __init__(self, records=PERM_NONE):
-		self._records = records
+	def __init__(self, records=None):
+		self.records = records
 
 	@property
 	def can_read_records(self):
-		return self._records >= PERM_READ
+		return bool(self.records)
 
 	@property
 	def can_write_records(self):
-		return self._records == PERM_WRITE
+		return self.records == self.WRITE
 
-	def modify(self, records=None):
+	def modify(self, records='current'):
 		"""Modify this connections's permissions."""
-		if records != None:
-			self._records = records
+		if records != 'current':
+			self.records = records
+
+	def __eq__(self, other):
+		return self.records == other.records
 
 
-def error(code):
-	"""Return an error structure."""
-	return ['error', str(code)]
+class Config(object):
+	"""Server configuration framework."""
+	def __init__(self, dbpath, server_name='vetclix-server', port=6060):
+		self._dbpath = str(dbpath)
+		self._server_name = str(server_name)
+		self._port = int(port)
+		self._users = {}
+
+	@property
+	def dbpath(self):
+		"""Return the path to the database."""
+		return self._dbpath
+
+	@property
+	def server_name(self):
+		"""Get the name of the server to advertise over the network."""
+		return self._server_name
+
+	@property
+	def port(self):
+		"""Get the port to listen on."""
+		return self._port
+
+	def add_user(self, user, password, perm):
+		"""Add a user with a password to match and a Permissions object."""
+		self._users[user] = (password, perm)
+
+	def get_permissions(self, user, password):
+		"""Return a permissions object giving a user's rights."""
+		try:
+			user_password, perm = self._users[user]
+			if user_password == password:
+				return copy.copy(perm)
+		except KeyError:
+			pass
+
+		return Permissions()
 
 
 def make_handler(dispatchf):
@@ -76,7 +113,7 @@ def make_handler(dispatchf):
 			try:
 				request = sexp.parse(request)
 			except sexp.ParseError:
-				return error('malformed')
+				return vetmarshal.error('malformed')
 
 			return dispatchf(self.ctx, request)
 
@@ -102,55 +139,76 @@ class NetServer(asyncore.dispatcher):
 		return self.handler(sock, client_addr, self)
 
 
-def make_server(config):
-	"""Create and return a server with the given configuration data."""
-	vetdb = database.Database(config['database'][0])
+def make_server(config, test_messages=()):
+	"""Create and return a server with the given configuration data.  A
+		sequence of test message/correct response pairs may be given for
+		testing, in which case None will be returned."""
+	vetdb = database.Database(config.dbpath)
 
 	def handle_auth(ctx, request):
 		"""Handle an authentication request."""
-		ctx['auth'].modify(records=PERM_WRITE)
+		user, password = request
+		perm = config.get_permissions(user, password)
+		ctx['auth'] = perm
+		return vetmarshal.permissions(perm)
+		return vetmarshal.error('badauth')
 
 	def handle_get(ctx, request):
 		"""Handle a record retrieval request."""
-		return error('unimplemented')
-
+		print(request)
 		rectype = request[0]
 		recid = request[1]
 
 		if rectype == 'client':
-			data = vetdb.get_client(recid)
+			client = vetdb.get_client(recid)
+			return vetmarshal.client(client)
 		elif rectype == 'patient':
-			data = vetdb.get_patient(recid)
+			patient = vetdb.get_patient(recid)
+			return vetmarshal.patient(patient)
 		else:
-			return error('badrequest')
-
-		return data
+			return vetmarshal.error('badrequest')
 
 	def handle_set(ctx, request):
 		"""Handle setting a record."""
-		return error('unimplemented')
 		rectype = request[0]
 		recid = request[1]
+
+		if rectype == 'client':
+			client = vetmarshal.parse_client(request[1:])
+			vetdb.set_client(client)
+			return vetmarshal.success()
+		elif rectype == 'patient':
+			patient = vetmarshal.parse_patient(request[1:])
+			vetdb.set_patient(patient)
+			return vetmarshal.success()
 
 	def dispatch(ctx, request):
 		"""Dispatch a request to the appropriate handler."""
 		auth = ctx['auth']
 		command = request[0]
 		body = []
+
 		if len(request) > 1:
 			body = request[1:]
 
 		handlers = {'version?': (lambda auth: True, lambda ctx, req: VERSION),
 					'auth': (lambda auth: True, handle_auth),
-					'get': (lambda auth: auth.can_read_record(), handle_get),
-					'set': (lambda auth: auth.can_write_record(), handle_set),
-					'search': (lambda auth: auth.can_read_record(), None)}
+					'get': (lambda auth: auth.can_read_records, handle_get),
+					'set': (lambda auth: auth.can_write_records, handle_set),
+					'search': (lambda auth: auth.can_read_records, None)}
 
 		handler = handlers[command]
 		if handler[0](auth):
 			return handler[1](ctx, body)
 
-		return error('badauth')
+		return vetmarshal.error('badauth')
+
+	if test_messages:
+		ctx = {'auth': Permissions()}
+		for message in test_messages:
+			assert dispatch(ctx, message[0]) == message[1]
+		vetdb.close()
+		return None
 
 	port = int(config['server'][1])
 	handler = make_handler(dispatch)
@@ -160,7 +218,7 @@ def make_server(config):
 
 
 def main():
-	config = sexp.maplist([['database', 'foo.db'], ['server', 'test-server', 6060]])
+	config = Config('foo.db')
 	server = make_server(config)
 	server.serve_forever()
 

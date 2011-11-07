@@ -8,6 +8,9 @@ Errors:
 	("error" "notfound")
 		The requested patient or client does not exist.
 
+<authlevel>
+0, 1, or 2: none, read, write
+
 <uuid>
 Unique string
 
@@ -26,7 +29,7 @@ S: <int>
 
 # Authentication
 C: (auth user passwd)
-S: ("ok") || ("error" "badauth")
+S: (<authlevel: records>)
 
 # Record retrieval
 C: ("get" "client" <uuid>)
