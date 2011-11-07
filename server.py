@@ -155,15 +155,22 @@ def make_server(config, test_messages=()):
 
 	def handle_get(ctx, request):
 		"""Handle a record retrieval request."""
-		print(request)
 		rectype = request[0]
 		recid = request[1]
 
 		if rectype == 'client':
 			client = vetdb.get_client(recid)
+
+			if not client:
+				return vetmarshal.error('nomatch')
+
 			return vetmarshal.client(client)
 		elif rectype == 'patient':
 			patient = vetdb.get_patient(recid)
+
+			if not patient:
+				return vetmarshal.error('nomatch')
+
 			return vetmarshal.patient(patient)
 		else:
 			return vetmarshal.error('badrequest')

@@ -42,7 +42,8 @@ def test_dispatch():
 		(['version?'], 1),
 		(['auth', 'jil', 'notyetapassword'], vetmarshal.permissions(noperm)),
 		(['auth', 'bob', 'wrongpassword'], vetmarshal.permissions(noperm)),
-		(['auth', 'bob', 'notyetapassword'], vetmarshal.permissions(fullperm)))
-#		(['get', 'client', str(uuid.uuid4())], vetmarshal.permissions(noperm) ))
+		(['get', 'client', str(uuid.uuid4())], vetmarshal.error('badauth')),
+		(['auth', 'bob', 'notyetapassword'], vetmarshal.permissions(fullperm)),
+		(['get', 'client', str(uuid.uuid4())], vetmarshal.error('nomatch')))
 	server.make_server(config, messages)
 	os.remove('foo.db')

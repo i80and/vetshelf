@@ -234,10 +234,14 @@ class Database(object):
 		return self._has_record('patients', patient.recid)
 
 	def get_client(self, recid):
-		"""Get a client from the database by UUID."""
+		"""Get a client from the database by UUID, returning None if not found."""
 		cursor = self.db.cursor()
 		cursor.execute('select * from clients where recid=?', [recid])
 		result = cursor.fetchone()
+
+		if not result:
+			return None
+
 		client = Client(result[1], address=result[2], recid=recid)
 
 		# Get this client's pets
@@ -250,10 +254,14 @@ class Database(object):
 		return client
 
 	def get_patient(self, recid):
-		"""Get a patient from the database by UUID."""
+		"""Get a patient from the database by UUID, returning None if not found."""
 		cursor = self.db.cursor()
 		cursor.execute('select * from patients where recid=?', [recid])
 		result = cursor.fetchone()
+
+		if not result:
+			return None
+
 		return Patient(result[1], recid=recid)
 
 	def _set_record(self, table, recid, columndata):
