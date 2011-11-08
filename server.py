@@ -18,7 +18,7 @@ class Permissions(object):
 	WRITE = 2
 
 	"""Class representing a connection's permissions."""
-	def __init__(self, records=None):
+	def __init__(self, records=0):
 		self.records = records
 
 	@property
@@ -32,7 +32,10 @@ class Permissions(object):
 	def modify(self, records='current'):
 		"""Modify this connections's permissions."""
 		if records != 'current':
-			self.records = records
+			if records == None:
+				self.records = 0
+			else:
+				self.records = records
 
 	def __eq__(self, other):
 		return self.records == other.records

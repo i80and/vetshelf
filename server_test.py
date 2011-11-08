@@ -25,9 +25,11 @@ def test_permissions():
 
 	perm2 = server.Permissions()
 	assert perm != perm2
+	assert perm2 != perm
 
 	perm2.modify(records=server.Permissions.WRITE)
 	assert perm == perm2
+	assert perm2 == perm
 
 
 def test_dispatch():
