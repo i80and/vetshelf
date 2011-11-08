@@ -23,7 +23,7 @@ def success():
 
 def permissions(perm):
 	"""Serialize a permissions object."""
-	data = [perm.records]
+	return [perm.records]
 
 
 def client(obj):
