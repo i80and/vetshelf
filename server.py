@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""Module for creating and working with the components of a Vetclix network
+server."""
+
 import copy
 import socket
 import asyncore
@@ -14,10 +17,10 @@ VERSION = 1
 
 
 class Permissions(object):
+	"""Class representing a connection's permissions."""
 	READ = 1
 	WRITE = 2
 
-	"""Class representing a connection's permissions."""
 	def __init__(self, records=0):
 		self.records = records
 
@@ -134,7 +137,8 @@ class NetServer(asyncore.dispatcher):
 		self.bind((host, port))
 		self.listen(5)
 
-	def serve_forever(self):
+	@staticmethod
+	def serve_forever():
 		asyncore.loop()
 
 	def handle_accept(self):
@@ -154,7 +158,6 @@ def make_server(config, test_messages=()):
 		perm = config.get_permissions(user, password)
 		ctx['auth'] = perm
 		return vetmarshal.permissions(perm)
-		return vetmarshal.error('badauth')
 
 	def handle_get(ctx, request):
 		"""Handle a record retrieval request."""
@@ -220,9 +223,8 @@ def make_server(config, test_messages=()):
 		vetdb.close()
 		return None
 
-	port = int(config['server'][1])
 	handler = make_handler(dispatch)
-	server = NetServer('localhost', port, handler)
+	server = NetServer('localhost', config.port, handler)
 
 	return server
 
