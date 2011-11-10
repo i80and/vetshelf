@@ -184,7 +184,6 @@ def make_server(config, test_messages=()):
 	def handle_set(ctx, request):
 		"""Handle setting a record."""
 		rectype = request[0]
-		recid = request[1]
 
 		if rectype == 'client':
 			client = vetmarshal.parse_client(request[1:])
@@ -198,7 +197,11 @@ def make_server(config, test_messages=()):
 	def dispatch(ctx, request):
 		"""Dispatch a request to the appropriate handler."""
 		auth = ctx['auth']
-		command = request[0]
+
+		if len(request) < 1:
+			return vetmarshal.error('badrequest')
+
+		command = str(request[0])
 		body = []
 
 		if len(request) > 1:
@@ -210,9 +213,15 @@ def make_server(config, test_messages=()):
 					'set': (lambda auth: auth.can_write_records, handle_set),
 					'search': (lambda auth: auth.can_read_records, None)}
 
+		if not command in handlers:
+			return vetmarshal.error('badrequest')
+
 		handler = handlers[command]
 		if handler[0](auth):
-			return handler[1](ctx, body)
+			try:
+				return handler[1](ctx, body)
+			except:
+				return vetmarshal.error('internal')
 
 		return vetmarshal.error('badauth')
 
