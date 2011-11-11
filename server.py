@@ -222,7 +222,8 @@ def make_server(config, test_messages=()):
 		handler = handlers[command]
 		handler_verify, handler_authf, handler = handler
 
-		# Check request format
+		# Check request format.  handler_verify can either be a list of types
+		# or a predicate function.
 		invalid = False
 		if hasattr(handler_verify, '__call__'):
 			invalid = not handler_verify(body)
