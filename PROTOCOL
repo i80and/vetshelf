@@ -39,12 +39,12 @@ C: ("get" "patient" <uuid>)
 S: <patient> || ("error" "notfound")
 
 # Record assignment
-C: ("set" "client" <uuid>)
+C: ("set-client" <client>)
 S: ("ok")
 
-C: ("set" "patient" <uuid>)
+C: ("set-patient" <patient>)
 S: ("ok")
 
 # Record search
-C: ("search" [<keywords>])
+C: ("search" <query>)
 S: [<client uuids>]

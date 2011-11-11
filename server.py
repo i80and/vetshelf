@@ -2,6 +2,9 @@
 """Module for creating and working with the components of a Vetclix network
 server."""
 
+# Please note: this is designed as a working prototype.  It isn't necessarily
+# as elegant or as safe as I would like!
+
 import copy
 import socket
 import asyncore
@@ -181,18 +184,17 @@ def make_server(config, test_messages=()):
 		else:
 			return vetmarshal.error('badrequest')
 
-	def handle_set(ctx, request):
-		"""Handle setting a record."""
-		rectype = request[0]
+	def handle_setclient(ctx, request):
+		"""Handle setting a client record."""
+		client = vetmarshal.parse_client(request)
+		vetdb.set_client(client)
+		return vetmarshal.success()
 
-		if rectype == 'client':
-			client = vetmarshal.parse_client(request[1:])
-			vetdb.set_client(client)
-			return vetmarshal.success()
-		elif rectype == 'patient':
-			patient = vetmarshal.parse_patient(request[1:])
-			vetdb.set_patient(patient)
-			return vetmarshal.success()
+	def handle_setpatient(ctx, request):
+		"""Handle setting a patient record."""
+		patient = vetmarshal.parse_patient(request)
+		vetdb.set_patient(patient)
+		return vetmarshal.success()
 
 	def dispatch(ctx, request):
 		"""Dispatch a request to the appropriate handler."""
@@ -207,28 +209,45 @@ def make_server(config, test_messages=()):
 		if len(request) > 1:
 			body = request[1:]
 
-		handlers = {'version?': (lambda auth: True, lambda ctx, req: VERSION),
-					'auth': (lambda auth: True, handle_auth),
-					'get': (lambda auth: auth.can_read_records, handle_get),
-					'set': (lambda auth: auth.can_write_records, handle_set),
-					'search': (lambda auth: auth.can_read_records, None)}
+		handlers = {'version?': ([], lambda auth: True, lambda ctx, req: VERSION),
+					'auth': ([str, str], lambda auth: True, handle_auth),
+					'get': ([str, str], lambda auth: auth.can_read_records, handle_get),
+					'set-client': (vetmarshal.verify_client, lambda auth: auth.can_write_records, handle_setclient),
+					'set-patient': (vetmarshal.verify_patient, lambda auth: auth.can_write_records, handle_setpatient),
+					'search': ([str], lambda auth: auth.can_read_records, None)}
 
 		if not command in handlers:
 			return vetmarshal.error('badrequest')
 
 		handler = handlers[command]
-		if handler[0](auth):
+		handler_verify, handler_authf, handler = handler
+
+		# Check request format
+		invalid = False
+		if hasattr(handler_verify, '__call__'):
+			invalid = not handler_verify(body)
+		else:
+			invalid = not vetmarshal.verify(body, handler_verify)
+
+		if invalid:
+			return vetmarshal.error('badrequest')
+
+		# Check permissions
+		if handler_authf(auth):
 			try:
-				return handler[1](ctx, body)
+				return handler(ctx, body)
 			except:
 				return vetmarshal.error('internal')
 
 		return vetmarshal.error('badauth')
 
+	# Special hook for testing
 	if test_messages:
 		ctx = {'auth': Permissions()}
 		for message in test_messages:
-			assert dispatch(ctx, message[0]) == message[1]
+			response = dispatch(ctx, message[0])
+			print(message[0], message[1], response)
+			assert response == message[1]
 		vetdb.close()
 		return None
 
