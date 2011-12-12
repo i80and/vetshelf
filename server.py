@@ -3,11 +3,10 @@
 server."""
 
 import copy
-import socket
-import asyncore
+import tornado.ioloop
+import tornado.web
 import database
 import vetmarshal
-import sexp
 
 __author__ = 'Andrew Aldridge'
 __license__ = 'ISC'
@@ -83,156 +82,79 @@ class Config(object):
 		return Permissions()
 
 
-def make_handler(dispatchf):
-	"""Create a request handler class based on the given dispatch function."""
-	class Handler(asyncore.dispatcher):
-		def __init__(self, sock, client_addr, server):
-			self.server = server
-			self.client = client_addr
-			self.inbuffer = []
-			self.outbuffer = ''
-			self.is_writable = False
-			asyncore.dispatcher.__init__(self, sock)
+class VetclixHandler(tornado.web.RequestHandler):
+	"""Base class for Vetclix request handlers, initiating data."""
+	def initialize(self, database, config):
+		self.vetdb = database
+		self.config = config
 
-			self.ctx = {'auth': Permissions()}
-
-		def writable(self):
-			return self.is_writable
-
-		def handle_read(self):
-			data = self.recv(1024)
-			if data:
-				self.inbuffer.append(str(data, 'utf-8'))
-			else:
-				request = ''.join(self.inbuffer)
-				self.inbuffer = []
-				self.outbuffer = sexp.dump(self.handle(request))
-				self.is_writable = True
-
-		def handle_write(self):
-			if self.buffer:
-				self.send(bytes(self.outbuffer, 'utf-8'))
-				self.is_writable = False
-				self.outbuffer = ''
-
-		def handle(self, request):
-			try:
-				request = sexp.parse(request)
-			except sexp.ParseError:
-				return vetmarshal.error('malformed')
-
-			return dispatchf(self.ctx, request)
-
-	return Handler
+	def write_error(self, status_code, **kwargs):
+		"""Return an error code."""
+		msg = status_code
+		if 'msg' in kwargs:
+			msg = kwargs['msg']
+		self.write({'error': msg})
 
 
-class NetServer(asyncore.dispatcher):
-	"""Internal TCP server class."""
-	def __init__(self, host, port, handler):
-		asyncore.dispatcher.__init__(self)
-		self.handler = handler
-
-		self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-
-		self.bind((host, port))
-		self.listen(5)
-
-	@staticmethod
-	def serve_forever():
-		asyncore.loop()
-
-	def handle_accept(self):
-		(sock, client_addr) = self.accept()
-		return self.handler(sock, client_addr, self)
+class VersionHandler(VetclixHandler):
+	def get(self):
+		self.write(str(VERSION))
 
 
-def make_server(config, test_messages=()):
-	"""Create and return a server with the given configuration data.  A
-		sequence of test message/correct response pairs may be given for
-		testing, in which case None will be returned."""
-	vetdb = database.Database(config.dbpath)
+class ClientHandler(VetclixHandler):
+	"""Handle requests to the /client/ tree."""
+	def get(self, id):
+		pass
 
-	def handle_auth(ctx, request):
-		"""Handle an authentication request."""
-		user, password = request
-		perm = config.get_permissions(user, password)
-		ctx['auth'] = perm
-		return vetmarshal.permissions(perm)
+	def post(self, id):
+		pass
 
-	def handle_get(ctx, request):
-		"""Handle a record retrieval request."""
-		rectype = request[0]
-		recid = request[1]
 
-		if rectype == 'client':
-			client = vetdb.get_client(recid)
+class PatientHandler(VetclixHandler):
+	"""Handle requests to the /patient/ tree."""
+	def get(self, id):
+		pass
 
-			if not client:
-				return vetmarshal.error('nomatch')
+	def post(self, id):
+		pass
 
-			return vetmarshal.client(client)
-		elif rectype == 'patient':
-			patient = vetdb.get_patient(recid)
 
-			if not patient:
-				return vetmarshal.error('nomatch')
+class SearchHandler(VetclixHandler):
+	"""Handle search requests at /search"""
+	def get(self):
+		pass
 
-			return vetmarshal.patient(patient)
-		else:
-			return vetmarshal.error('badrequest')
 
-	def handle_set(ctx, request):
-		"""Handle setting a record."""
-		rectype = request[0]
-		recid = request[1]
+class BadHandler(VetclixHandler):
+	"""404 handler"""
+	def get(self):
+		self.send_error(status_code=404, msg='badrequest')
 
-		if rectype == 'client':
-			client = vetmarshal.parse_client(request[1:])
-			vetdb.set_client(client)
-			return vetmarshal.success()
-		elif rectype == 'patient':
-			patient = vetmarshal.parse_patient(request[1:])
-			vetdb.set_patient(patient)
-			return vetmarshal.success()
 
-	def dispatch(ctx, request):
-		"""Dispatch a request to the appropriate handler."""
-		auth = ctx['auth']
-		command = request[0]
-		body = []
+class Server(object):
+	"""The main Vetclix server object."""
+	def __init__(self, config):
+		self.config = config
+		self.database = database.Database(config.dbpath)
+		args = dict(database=self.database, config=self.config)
+		self.app = tornado.web.Application([
+			(r'/version', VersionHandler, args),
+			(r'/client/(.*)', ClientHandler, args),
+			(r'/patient/(.*)', PatientHandler, args),
+			(r'/search', SearchHandler, args),
+			(r'/.*', BadHandler, args)
+		])
 
-		if len(request) > 1:
-			body = request[1:]
-
-		handlers = {'version?': (lambda auth: True, lambda ctx, req: VERSION),
-					'auth': (lambda auth: True, handle_auth),
-					'get': (lambda auth: auth.can_read_records, handle_get),
-					'set': (lambda auth: auth.can_write_records, handle_set),
-					'search': (lambda auth: auth.can_read_records, None)}
-
-		handler = handlers[command]
-		if handler[0](auth):
-			return handler[1](ctx, body)
-
-		return vetmarshal.error('badauth')
-
-	if test_messages:
-		ctx = {'auth': Permissions()}
-		for message in test_messages:
-			assert dispatch(ctx, message[0]) == message[1]
-		vetdb.close()
-		return None
-
-	handler = make_handler(dispatch)
-	server = NetServer('localhost', config.port, handler)
-
-	return server
+	def start(self):
+		"""Begin accepting connections."""
+		self.app.listen(self.config.port)
+		tornado.ioloop.IOLoop.instance().start()
 
 
 def main():
 	config = Config('foo.db')
-	server = make_server(config)
-	server.serve_forever()
+	server = Server(config)
+	server.start()
 
 if __name__ == '__main__':
 	main()
