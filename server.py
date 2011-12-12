@@ -2,9 +2,6 @@
 """Module for creating and working with the components of a Vetclix network
 server."""
 
-# Please note: this is designed as a working prototype.  It isn't necessarily
-# as elegant or as safe as I would like!
-
 import copy
 import tornado.ioloop
 import tornado.web
@@ -112,7 +109,6 @@ class ClientHandler(VetclixHandler):
 	def post(self, id):
 		pass
 
-<<<<<<< HEAD
 
 class PatientHandler(VetclixHandler):
 	"""Handle requests to the /patient/ tree."""
@@ -121,87 +117,19 @@ class PatientHandler(VetclixHandler):
 
 	def post(self, id):
 		pass
-=======
-	def handle_setclient(ctx, request):
-		"""Handle setting a client record."""
-		client = vetmarshal.parse_client(request)
-		vetdb.set_client(client)
-		return vetmarshal.success()
-
-	def handle_setpatient(ctx, request):
-		"""Handle setting a patient record."""
-		patient = vetmarshal.parse_patient(request)
-		vetdb.set_patient(patient)
-		return vetmarshal.success()
-
-	def dispatch(ctx, request):
-		"""Dispatch a request to the appropriate handler."""
-		auth = ctx['auth']
-
-		if len(request) < 1:
-			return vetmarshal.error('badrequest')
-
-		command = str(request[0])
-		body = []
->>>>>>> 5d099b9636a065ffd676c19243e1cb4a8eb6ccee
 
 
-<<<<<<< HEAD
 class SearchHandler(VetclixHandler):
 	"""Handle search requests at /search"""
 	def get(self):
 		pass
 
-=======
-		handlers = {'version?': ([], lambda auth: True, lambda ctx, req: VERSION),
-					'auth': ([str, str], lambda auth: True, handle_auth),
-					'get': ([str, str], lambda auth: auth.can_read_records, handle_get),
-					'set-client': (vetmarshal.verify_client, lambda auth: auth.can_write_records, handle_setclient),
-					'set-patient': (vetmarshal.verify_patient, lambda auth: auth.can_write_records, handle_setpatient),
-					'search': ([str], lambda auth: auth.can_read_records, None)}
-
-		if not command in handlers:
-			return vetmarshal.error('badrequest')
-
-		handler = handlers[command]
-		handler_verify, handler_authf, handler = handler
-
-		# Check request format.  handler_verify can either be a list of types
-		# or a predicate function.
-		invalid = False
-		if hasattr(handler_verify, '__call__'):
-			invalid = not handler_verify(body)
-		else:
-			invalid = not vetmarshal.verify(body, handler_verify)
-
-		if invalid:
-			return vetmarshal.error('badrequest')
-
-		# Check permissions
-		if handler_authf(auth):
-			try:
-				return handler(ctx, body)
-			except:
-				return vetmarshal.error('internal')
->>>>>>> 5d099b9636a065ffd676c19243e1cb4a8eb6ccee
 
 class BadHandler(VetclixHandler):
 	"""404 handler"""
 	def get(self):
 		self.send_error(status_code=404, msg='badrequest')
 
-<<<<<<< HEAD
-=======
-	# Special hook for testing
-	if test_messages:
-		ctx = {'auth': Permissions()}
-		for message in test_messages:
-			response = dispatch(ctx, message[0])
-			print(message[0], message[1], response)
-			assert response == message[1]
-		vetdb.close()
-		return None
->>>>>>> 5d099b9636a065ffd676c19243e1cb4a8eb6ccee
 
 class Server(object):
 	"""The main Vetclix server object."""

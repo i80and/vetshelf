@@ -223,17 +223,14 @@ class Database(object):
 		return [result[0] for result in results]
 
 	def _has_record(self, table, recid):
-		"""Return whether or not the given record ID exists in the given table."""
 		cursor = self.db.cursor()
 		cursor.execute('select recid from {0} where recid=?'.format(table), [str(recid)])
 		return bool(cursor.fetchone())
 
 	def has_client(self, client):
-		"""Return whether or not the given client exists in the database."""
 		return self._has_record('clients', client.recid)
 
 	def has_patient(self, patient):
-		"""Return whether or not the given patient exists in the database."""
 		return self._has_record('patients', patient.recid)
 
 	def get_client(self, recid):
@@ -268,7 +265,6 @@ class Database(object):
 		return Patient(result[1], recid=recid)
 
 	def _set_record(self, table, recid, columndata):
-		"""Asign a record in a table the given data tuple."""
 		cursor = self.db.cursor()
 
 		if self._has_record(table, recid):
@@ -283,7 +279,6 @@ class Database(object):
 							[x[1] for x in columndata])
 
 	def set_client(self, client, autocommit=True):
-		"""Store a client in the database."""
 		columndata = client.get_column_data()
 		self._set_record('clients', client.recid, columndata)
 
@@ -295,7 +290,6 @@ class Database(object):
 			self.db.commit()
 
 	def set_patient(self, patient, autocommit=True):
-		"""Store a patient in the database."""
 		columndata = patient.get_column_data()
 		self._set_record('patients', patient.recid, columndata)
 

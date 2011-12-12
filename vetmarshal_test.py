@@ -23,9 +23,3 @@ def test_permissions():
 
 	for perm in ((no_perm, [0]), (read_perm, [1]), (write_perm, [2])):
 		assert vetmarshal.permissions(perm[0]) == perm[1]
-
-
-def test_verify():
-	"""Test structure verification."""
-	assert vetmarshal.verify([], [])
-	assert vetmarshal.verify(['Bobby Tables', 10], [str, int])

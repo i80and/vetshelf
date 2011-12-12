@@ -6,18 +6,6 @@ import database
 import sexp
 
 
-def verify(obj, args):
-	"""Verify that obj matches the types in args."""
-	if not len(obj) == len(args):
-		return False
-
-	for arg in zip(obj, args):
-		if not isinstance(arg[0], arg[1]):
-			return False
-
-	return True
-
-
 def error(code):
 	"""Return an error code with a short string description."""
 	return ['error', str(code)]
@@ -36,21 +24,6 @@ def success():
 def permissions(perm):
 	"""Serialize a permissions object."""
 	return [perm.records]
-
-
-def verify_client(obj):
-	"""Verify that a client can be parsed."""
-	result = verify(obj, [str, str, str, list, list])
-
-	# Check pets
-	for pet in obj[3]:
-		result = result and isinstance(pet, str)
-
-	# Check contact info
-	for contactinfo in obj[4]:
-		result = result and verify(contactinfo, [str, str, str])
-
-	return result
 
 
 def client(obj):
@@ -75,11 +48,6 @@ def parse_client(data):
 	client_obj.notes = [str(note) for note in structured['notes']]
 
 	return client_obj
-
-
-def verify_patient(obj):
-	"""Verify that a patient can be parsed."""
-	return verify(obj, [str, str, str, str, str, str, str])
 
 
 def patient(obj):
