@@ -1,0 +1,11 @@
+{
+  "name": "vetclix-tests",
+  "version": "0.0.0",
+  "author": "Andrew Aldridge <i80and@foxquill.com>",
+  "dependencies": {
+    "babel": "5.8.9",
+    "jshint": "2.8.0",
+    "ws": "0.7.2"
+  },
+  "private": true
+}
