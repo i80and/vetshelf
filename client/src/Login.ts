@@ -1,7 +1,12 @@
+/// <reference path="typings/mithril/mithril.d.ts" />
+
 // const Connection = require('./Connection')
 // const util = require('./util')
 
 export class ViewModel {
+    serverAddress: (value?: string) => string
+    password: (value?: string) => string
+
     constructor() {
         this.serverAddress = m.prop('')
         this.password = m.prop('')
@@ -10,7 +15,7 @@ export class ViewModel {
     connect() {}
 }
 
-export let vm = null
+export let vm: ViewModel = null
 
 export const view = function() {
     return m('section#login-page', [

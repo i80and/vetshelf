@@ -2,15 +2,15 @@
 'use strict'
 
 const fs = require('fs')
+const process = require('process')
 const path = require('path')
 const crypto = require('crypto')
-const Connection = require('../client/src/Connection.js')
+const Connection = require('../client/.obj/Connection.js')
 
 // Shims to simulate a browser-like environment
-global.self = {}
-global.self.WebSocket = require('ws')
-global.self.crypto = crypto
-global.self.crypto.getRandomValues = function(buf) {
+global.WebSocket = require('ws')
+global.crypto = crypto
+global.crypto.getRandomValues = function(buf) {
     const rnd = crypto.randomBytes(buf.byteLength)
     for(let i = 0; i < buf.length; i += 1) {
         buf[i] = 0
@@ -23,6 +23,8 @@ global.self.crypto.getRandomValues = function(buf) {
 
 function runTests(connection) {
     const tests = []
+    let run = 0
+    let failed = 0
 
     const testRoot = path.join(__dirname, 'jstests')
     const files = fs.readdirSync(testRoot)
@@ -44,13 +46,19 @@ function runTests(connection) {
 
         return tests[i](connection).catch((err) => {
             console.error(err)
+            failed += 1
         }).then(() => {
+            run += 1
             return runTest(i+1)
         })
     }
 
     return runTest(0).then(() => {
-        console.log('Done!')
+        console.log(`${run} test run`)
+        console.log(`${failed} tests failed`)
+        if(failed > 0) {
+            process.exit(1)
+        }
     })
 }
 

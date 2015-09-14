@@ -40,7 +40,7 @@ profile-validator:
   options: {}
   run: null
 pyflakes:
-  disable: [F810, F403]
+  disable: [F810, F403, F401]
   enable: []
   options: {}
   run: null
@@ -55,7 +55,7 @@ pylint:
     C0324, fixme, too-many-public-methods, global-statement, too-many-return-statements,
     C0322, C0323, missing-final-newline, no-self-use, property-on-old-class, unused-format-string-key,
     super-init-not-called, multiple-statements, trailing-whitespace, exec-used, broad-except,
-    bad-mcs-method-argument, E1103, invalid-sequence-index, arguments-differ]
+    bad-mcs-method-argument, E1103, invalid-sequence-index, arguments-differ, unused-import]
   enable: [no-name-in-module, no-member, attribute-defined-outside-init]
   options: {max-attributes: 7, max-branches: 15, max-line-length: 159, max-locals: 15,
     max-module-lines: 1000, max-parents: 7, max-public-methods: 20, max-returns: 6,

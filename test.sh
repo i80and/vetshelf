@@ -6,7 +6,7 @@ PROSPECTOR=prospector
 NODE_EXE="./tests/node_modules/.bin/babel-node"
 NODE="${NODE_EXE} --stage=1"
 
-export MYPYPATH='./server'
+export MYPYPATH='./server:./server/stubs'
 export NODE_PATH='./server/.node_modules'
 
 if [ ! -x ${NODE_EXE} ]; then
@@ -28,10 +28,11 @@ ${PROSPECTOR} -M server/
 
 echo "Type-checking server..."
 # Our goal is full coverage, but that's not possible just yet
-${MYPY} -m vetclix.db
+${MYPY} -m vetclix.db.dummy
+${MYPY} -m vetclix.db.sqlite
 
-echo "Linting client..."
-make -C ./client check
+echo "Building client..."
+make -C ./client
 
 echo "Running jstests..."
 ${NODE} ./tests/harness.js
