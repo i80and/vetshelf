@@ -1,25 +1,34 @@
-TRANSFORM_BLACKLIST=es6.forOf,regenerator
+.PHONY: all clean
 
-.PHONY: all check clean
+SRC=./src/app.ts \
+    ./src/calendarWidget.ts \
+    ./src/Client.ts \
+    ./src/Connection.ts \
+    ./src/Login.ts \
+    ./src/optionsWidget.ts \
+    ./src/Patient.ts \
+    ./src/Search.ts \
+    ./src/SearchResults.ts \
+    ./src/toggleWidget.ts \
+    ./src/util.ts \
+    ./src/Visit.ts
 
-all: build/js/app.min.js
+all: ./build/app.js ./build/index.html node_modules
 	install src/deps/*.js build/js/
 	rsync -ra --delete style/ build/style
 	cp index.html build/
 
-build/js/%.min.js: build/js/%.js
-	cp $^ $@
+./build/app.js: $(SRC)
+	./node_modules/.bin/tsc --noImplicitAny --target es6 --outDir ./.obj $^
+	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify ]
 
-build/js/app.js: src/*.js
-	mkdir -p build/js
-	./node_modules/.bin/jshint --verbose src/*.js &
-	./node_modules/.bin/browserify -d -o $@ -e src/app.js -t [ babelify --blacklist $(TRANSFORM_BLACKLIST) --optional es7.asyncFunctions --sourceMapRelative . ]
+./build/index.html: index.html
+	cp $^ $@
 
 node_modules: package.json
 	npm update
-
-check: node_modules
-	./node_modules/.bin/jshint --verbose src/*.js
+	touch node_modules
 
 clean:
-	$(RM) -r build/*
+	rm -r .obj/*
+	rm -r build/*

@@ -1,5 +1,9 @@
 import ctypes
 
+__all__ = ('tame', 'TAME_MALLOC', 'TAME_RW', 'TAME_STDIO', 'TAME_RPATH', 'TAME_WPATH',
+                 'TAME_TMPPATH', 'TAME_INET', 'TAME_UNIX', 'TAME_CMSG', 'TAME_DNS',
+                 'TAME_IOCTL', 'TAME_GETPW', 'TAME_PROC', 'TAME_CPATH', 'TAME_ABORT')
+
 try:
     _tame = ctypes.cdll.LoadLibrary('libc.so.80')['tame']
     _tame.argtypes = (ctypes.c_int,)
@@ -42,7 +46,3 @@ def tame(flags: int) -> int:
     """Use the OpenBSD tame(2) syscall if available to drop the to given
        capabilities."""
     return _tame(flags)
-
-__all__ = ('tame', 'TAME_MALLOC', 'TAME_RW', 'TAME_STDIO', 'TAME_RPATH', 'TAME_WPATH',
-                 'TAME_TMPPATH', 'TAME_INET', 'TAME_UNIX', 'TAME_CMSG', 'TAME_DNS',
-                 'TAME_IOCTL', 'TAME_GETPW', 'TAME_PROC', 'TAME_CPATH', 'TAME_ABORT')

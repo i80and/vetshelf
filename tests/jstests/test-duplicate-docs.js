@@ -4,16 +4,17 @@
 // the server catches the case where we do.
 
 const assert = require('assert')
-const Client = require('../../client/src/Client.js')
-const Patient = require('../../client/src/Patient.js')
+const Connection = require('../../client/.obj/Connection.js')
+const Client = require('../../client/.obj/Client.js')
+const Patient = require('../../client/.obj/Patient.js')
 
 export async function test(connection) {
 
     // We'll gimp our ID generator, then restore it at the end of this test.
-    const origGenID = connection.genID
+    const origGenID = Connection.prototype.genID
     let caught = 0
     try {
-        connection.genID = () => { return '' }
+        Connection.prototype.genID = () => { return '' }
 
         await connection.clear()
         await connection.saveClient(new Client(null, {}))
@@ -31,7 +32,7 @@ export async function test(connection) {
             caught += 1
         }
     } finally {
-        connection.genID = origGenID
+        Connection.prototype.genID = origGenID
     }
 
     assert.equal(caught, 2, 'Duplicate records not caught')

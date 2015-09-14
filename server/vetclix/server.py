@@ -27,7 +27,7 @@ import sys
 import docopt
 import tornado.web
 import tornado.websocket
-from typing import List
+from typing import List, Dict, Any
 
 import vetclix.tame
 import vetclix.db
@@ -47,10 +47,10 @@ def int_or_none(n: str) -> int:
 
 
 class EchoWebSocket(tornado.websocket.WebSocketHandler):
-    def initialize(self, dbconn) -> None:
+    def initialize(self, dbconn: vetclix.db.dummy.DummyConnection) -> None:
         self.dbconn = dbconn
 
-    def select_subprotocol(self, subprotocols) -> str:
+    def select_subprotocol(self, subprotocols: List[str]) -> str:
         if 'vetclix' not in subprotocols:
             return None
 
@@ -98,33 +98,33 @@ class EchoWebSocket(tornado.websocket.WebSocketHandler):
     def on_close(self) -> None:
         pass
 
-    def handle_search(self, query) -> List[vetclix.db.SearchResults]:
-        query = str(query)
+    def handle_search(self, query: str) -> List[vetclix.db.SearchResults]:
         return self.dbconn.search(query).serialize()
 
     def handle_show_upcoming(self) -> List[vetclix.db.SearchResults]:
         return self.dbconn.get_upcoming().serialize()
 
-    def handle_get_clients(self, recids) -> List[vetclix.db.Client]:
-        return [self.dbconn.get_client(recids).serialize()]
+    def handle_get_clients(self, recids: List[str]) -> List[vetclix.db.Client]:
+        return [self.dbconn.get_client(recid).serialize() for recid in recids]
 
-    def handle_get_patients(self, recids) -> List[vetclix.db.Patient]:
-        return [self.dbconn.get_patient(recids).serialize()]
+    def handle_get_patients(self, recids: List[str]) -> List[vetclix.db.Patient]:
+        return [self.dbconn.get_patient(recid).serialize() for recid in recids]
 
-    def handle_save_patient(self, raw_patient, client_ids, no_overwrite=False) -> str:
+    def handle_save_patient(self, raw_patient: List[str],
+                            client_ids: List[str], no_overwrite: bool=False) -> str:
         patient = vetclix.db.Patient.deserialize(raw_patient)
         recid = self.dbconn.save_patient(patient, no_overwrite)
         self.dbconn.add_patient_to_client(patient, client_ids)
         return recid
 
-    def handle_save_client(self, raw_client, no_overwrite=False) -> str:
+    def handle_save_client(self, raw_client: Dict[str, Any], no_overwrite: bool=False) -> str:
         client = vetclix.db.Client.deserialize(raw_client)
         return self.dbconn.save_client(client, no_overwrite)
 
     def handle_clear(self) -> None:
         self.dbconn.clear()
 
-    def __reply(self, messageCounter: int, message) -> None:
+    def __reply(self, messageCounter: int, message: Dict[str, Any]) -> None:
         self.write_message(json.dumps({
                 'i': messageCounter,
                 'm': message

@@ -1,13 +1,11 @@
-const Connection = require('./Connection')
-const Search = require('./Search')
-const Login = require('./Login')
+import Connection from './Connection'
+import * as Search from './Search'
+import * as Login from './Login'
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.getElementById('root-container')
 
     Connection.init().then(() => {
-        window.conn = Connection.theConnection
-
         m.route(body, '/search', {
             '/login': Login,
             '/search': Search,

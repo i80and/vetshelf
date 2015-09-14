@@ -1,12 +1,12 @@
-const Client = require('./Client')
-const Patient = require('./Patient')
-const SearchResults = require('./SearchResults')
+import Client from './Client'
+import Patient from './Patient'
+import SearchResults from'./SearchResults'
 
 const TIMEOUT_INTERVAL = 5000
 
 function genID() {
     const buf = new Uint32Array(8)
-    const str = []
+    const str: string[] = []
     self.crypto.getRandomValues(buf)
     for(let i = 0; i < buf.length; i += 2) {
         str.push(buf[i].toString(16))
@@ -16,39 +16,53 @@ function genID() {
 }
 
 class PendingContext {
-    constructor(resolve, reject, removeFunc) {
+    private timeoutIndex: number
+
+    constructor(private id: number,
+                public resolve: (val:{})=>void,
+                public reject: (msg:{})=>void,
+                public removeFunc: (i:number)=>void) {
         this.resolve = resolve
         this.reject = reject
         this.removeFunc = removeFunc
         this.timeoutIndex = setTimeout(() => {
-            removeFunc()
+            removeFunc(this.id)
 
             return reject({error: 'timeout'})
         }, TIMEOUT_INTERVAL)
+
+        Object.seal(this)
     }
 
     expire() {
         clearTimeout(this.timeoutIndex)
-        this.removeFunc()
+        this.removeFunc(this.id)
     }
 }
 
 export default class Connection {
-    constructor(host) {
+    host: string
+    sock: WebSocket
+    pending: Map<number, PendingContext>
+    messageCounter: number
+
+    constructor(host: string) {
         this.host = host
         this.sock = null
 
-        this.pending = new Map()
+        this.pending = new Map<number, PendingContext>()
         this.messageCounter = 0
+
+        Object.seal(this)
     }
 
     genID() { return genID() }
 
     connect() {
-        this.sock = new self.WebSocket(this.host, 'vetclix')
+        this.sock = new WebSocket(this.host, 'vetclix')
 
         this.sock.onmessage = (event) => {
-            let data = null
+            let data: any = null
 
             try {
                 data = JSON.parse(event.data)
@@ -78,7 +92,7 @@ export default class Connection {
         })
     }
 
-    search(query) {
+    search(query: string) {
         return this.__send_message(['search', query]).then((results) => {
             return SearchResults.deserialize(results)
         })
@@ -90,21 +104,21 @@ export default class Connection {
         })
     }
 
-    getClients(ids) {
-        return this.__send_message(['get-clients', ids]).then((results) => {
+    getClients(ids: string[]) {
+        return this.__send_message(['get-clients', ids]).then((results: {}[]) => {
             return results.map((raw) => Client.deserialize(raw))
         })
     }
 
-    getPatients(ids) {
-        return this.__send_message(['get-patients', ids]).then((results) => {
+    getPatients(ids: string[]) {
+        return this.__send_message(['get-patients', ids]).then((results: {}[]) => {
             return results.map((raw) => Patient.deserialize(raw))
         })
     }
 
     /// Save a patient to the database, generating a new ID if it isn't already
     /// set. Specifies a list of client IDs for to add this patient as a pet.
-    savePatient(patient, clientIDs=[]) {
+    savePatient(patient: Patient, clientIDs: string[]=[]) {
         const newDoc = patient.id === undefined || patient.id === null
         if(newDoc) {
             patient.id = this.genID()
@@ -113,7 +127,7 @@ export default class Connection {
         return this.__send_message(['save-patient', patient.serialize(), clientIDs, newDoc])
     }
 
-    saveClient(client) {
+    saveClient(client: Client) {
         const newDoc = client.id === undefined || client.id === null
         if(newDoc) {
             client.id = this.genID()
@@ -122,7 +136,7 @@ export default class Connection {
         return this.__send_message(['save-client', client.serialize(), newDoc])
     }
 
-    login(username, password) {
+    login(username: string, password: string) {
         return this.__send_message(['login', username, password])
     }
 
@@ -138,7 +152,7 @@ export default class Connection {
         this.sock.close()
     }
 
-    __send_message(message) {
+    __send_message<T>(message: Object) {
         this.messageCounter += 1
 
         return new Promise((resolve, reject) => {
@@ -150,17 +164,19 @@ export default class Connection {
             // Set up a pending action that associates the given messageCounter
             // with the Promise. If the request expires, remove from the pending
             // list.
-            const pending = new PendingContext(resolve, reject, (i) => {
+
+            const pending = new PendingContext(this.messageCounter, resolve, reject, (i: number) => {
                 this.pending.delete(i)
-            }.bind(undefined, this.messageCounter))
+            })
 
             this.pending.set(this.messageCounter, pending)
         })
     }
-}
 
-Connection.theConnection = null
-Connection.init = function() {
-    Connection.theConnection = new Connection('ws://localhost')
-    return Connection.theConnection.connect()
+    static theConnection: Connection = null
+
+    static init() {
+        Connection.theConnection = new Connection('ws://localhost')
+        return Connection.theConnection.connect()
+    }
 }
