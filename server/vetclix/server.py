@@ -31,6 +31,7 @@ from typing import List
 
 import vetclix.tame
 import vetclix.db
+import vetclix.db.dummy
 
 MAX_MESSAGE_LEN = 1024 * 1024
 LOGGER = logging.getLogger(__name__)
@@ -149,7 +150,7 @@ def main() -> None:
     if testing_mode:
         LOGGER.warn('Running in testing mode! Do not deploy in production.')
 
-    dbconn = vetclix.db.DummyConnection(testing_mode)
+    dbconn = vetclix.db.dummy.DummyConnection(testing_mode)
 
     try:
         application = tornado.web.Application([
