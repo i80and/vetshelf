@@ -29,7 +29,6 @@ import tornado.web
 import tornado.websocket
 from typing import List, Dict, Any
 
-import vetclix.tame
 import vetclix.db
 import vetclix.db.dummy
 
@@ -164,9 +163,6 @@ def main() -> None:
 
         if uid:
             os.setuid(uid)
-
-        if vetclix.tame.tame(vetclix.tame.TAME_MALLOC | vetclix.tame.TAME_RW | vetclix.tame.TAME_INET) < 0:
-            LOGGER.warn('tame(2) not supported')
 
         LOGGER.info('Listening on port %s', port)
         tornado.ioloop.IOLoop.current().start()
