@@ -3,14 +3,16 @@
 import * as util from './util'
 
 class Visit {
+    id: string
     date: moment.Moment
     tags: string[]
     note: string
     committed: any
 
-    constructor(date: moment.Moment, tags: string[], note: string, options: any) {
+    constructor(id: string, date: moment.Moment, tags: string[], note: string, options: any) {
         if(options === undefined) { options = {} }
 
+        this.id = id
         this.date = date || moment()
         this.tags = tags || []
         this.note = note || ''
@@ -20,6 +22,7 @@ class Visit {
 
     serialize(): any {
         return {
+            id: this.id,
             type: 'visit',
             date: this.date.toISOString(),
             tags: this.tags,
@@ -34,7 +37,7 @@ class Visit {
         }
 
         const date = moment(data.date)
-        return new Visit(date, data.tags, data.note, data)
+        return new Visit(data.id, date, data.tags, data.note, data)
     }
 }
 

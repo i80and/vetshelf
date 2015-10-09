@@ -1,19 +1,23 @@
 import Client from './Client'
 import Patient from './Patient'
+import Visit from './Visit'
 import * as util from './util'
 
 export default class SearchResults {
     clients: Client[]
     clientIDs: string[]
     patients: Map<string, Patient>
+    visits: Map<string, Visit>
     matchedPatients: Set<string>
     clientsIndex: Map<string, Client>
 
     constructor(clients: Client[],
                 patients: Map<string, Patient>=null,
+                visits: Map<string, Visit>=null,
                 matchedPatients: Set<string>=null) {
         this.clientIDs = clients.map((doc) => doc.id) || []
         this.patients = patients || new Map<string, Patient>()
+        this.visits = visits || new Map<string, Visit>()
         this.matchedPatients = matchedPatients || new Set<string>()
 
         this.clientsIndex = new Map<string, Client>()
@@ -72,12 +76,18 @@ export default class SearchResults {
             patients.set(patient.id, patient)
         }
 
+        const visits = new Map<string, Visit>()
+        for(let rawVisit of data.visits) {
+            const visit = Visit.deserialize(rawVisit)
+            visits.set(visit.id, visit)
+        }
+
         const matchedPatients = new Set<string>()
         for(let petID of data['matched-patients']) {
             matchedPatients.add(petID)
         }
 
-        const results = new SearchResults(clients, patients, matchedPatients)
+        const results = new SearchResults(clients, patients, visits, matchedPatients)
         return results
     }
 }

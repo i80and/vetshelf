@@ -62,7 +62,6 @@ class EchoWebSocket(tornado.websocket.WebSocketHandler):
         pass
 
     def on_message(self, message) -> None:
-        print(message)
         if len(message) > MAX_MESSAGE_LEN:
             LOGGER.warn('Message too large: %s', len(message))
             return
