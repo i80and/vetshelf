@@ -13,12 +13,12 @@ SRC=./src/app.ts \
     ./src/util.ts \
     ./src/Visit.ts
 
-all: ./build/app.js ./build/index.html node_modules
+all: ./build/js/app.js ./build/index.html node_modules
 	install src/deps/*.js build/js/
 	rsync -ra --delete style/ build/style
 	cp index.html build/
 
-./build/app.js: $(SRC)
+./build/js/app.js: $(SRC)
 	./node_modules/.bin/tsc --noImplicitAny --target es6 --outDir ./.obj $^
 	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify ]
 
