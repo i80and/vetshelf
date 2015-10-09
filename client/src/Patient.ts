@@ -14,7 +14,7 @@ export default class Patient {
     _active: boolean
     _due: Map<string, moment.Moment>
 
-    visits: Visit[]
+    visits: string[]
     dirty: boolean
 
     constructor(id: string, options: any) {
@@ -123,7 +123,7 @@ export default class Patient {
             note: this.note,
             active: this.active,
 
-            visits: this.visits.map((v) => v.serialize())
+            visits: this.visits
         }
     }
 
@@ -133,7 +133,7 @@ export default class Patient {
         }
 
         const patient = new Patient(data.id, data)
-        patient.visits = patient.visits.map((v) => Visit.deserialize(v))
+        patient.visits = patient.visits
 
         const due = new Map<string, moment.Moment>()
         for (let name in data.due) {

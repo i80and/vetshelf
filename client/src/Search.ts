@@ -198,6 +198,11 @@ export let vm: ViewModel = null
 
 function renderPatient(petID: string) {
     const patient = vm.results.patients.get(petID)
+    if(!patient) {
+        console.error(`No such patient: ${petID}`)
+        return m('li.patient-info')
+    }
+
     const classes: string[] = []
 
     if(vm.results.matchedPatients.has(petID)) { classes.push('preferred') }
@@ -338,7 +343,9 @@ function renderEditPatient() {
             m('h1', 'Appointments'),
             [ m('div.visit-entry', { onclick: () => vm.addAppointment() }, [
                 m('div.visit-date', [m('span'), m('span.fa.fa-plus')])
-            ])].concat(vm.selected.visits.map((visit: Visit) => {
+            ])].concat(vm.selected.visits.map((visitID: string) => {
+                const visit = vm.results.visits.get(visitID)
+                console.log(visitID)
                 return m('div.visit-entry', {
                     onclick: () => {}
                 }, [
