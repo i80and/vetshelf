@@ -296,16 +296,16 @@ function renderEditPatient() {
                 onclick: (val: string) => vm.selected.sex = val,
                 value: vm.selected.sex,
                 states: [
-                    new optionsWidget.State('f',
-                        () => m('span.fa.fa-venus', { title: 'Female' })),
                     new optionsWidget.State('m',
                         () => m('span.fa.fa-mars', { title: 'Male' })),
-                    new optionsWidget.State('i',
-                        () => m('span.fa.fa-transgender-alt', { title: 'Intersex' }))]}),
+                    new optionsWidget.State('f',
+                        () => m('span.fa.fa-venus', { title: 'Female' }))]
+            }),
             m('div', [
                 toggleWidget({
                     value: vm.selected.intact,
-                    ontoggle: (val: string) => vm.selected.intact = val }),
+                    ontoggle: (val: string) => vm.selected.intact = val ,
+                    onprompt: () => !vm.selected.intact? window.confirm('You are un-fixing a patient. Are you sure?') : true }),
                 m('span.left-padded', 'Intact')
             ]),
             m('input', {
