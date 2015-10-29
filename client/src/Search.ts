@@ -329,32 +329,36 @@ function renderEditPatient() {
                 m('span.left-padded', 'Active')
             ])
         ]),
-        m('div', [
-            m('h1', 'Due'),
-            vm.selected.dueByDate().map((kv: [moment.Moment, string[]]) => {
-                const [date, names] = kv
+        m('div#schedule-pane', [
+            m('section', [
+                m('h1', 'Due'),
+                vm.selected.dueByDate().map((kv: [moment.Moment, string[]]) => {
+                    const [date, names] = kv
 
-                return m('div.due-entry', { class: date.isAfter(now)? 'future' : '' }, [
-                    m('span', date.format('ddd ll')),
-                    m('span', date.fromNow()),
-                    m('div', names.join(', '))
-                ])
-            }),
-            m('h1', 'Appointments'),
-            [ m('div.visit-entry', { onclick: () => vm.addAppointment() }, [
-                m('div.visit-date', [m('span'), m('span.fa.fa-plus')])
-            ])].concat(vm.selected.visits.map((visitID: string) => {
-                const visit = vm.results.visits.get(visitID)
-                console.log(visitID)
-                return m('div.visit-entry', {
-                    onclick: () => {}
-                }, [
-                    m('div.visit-date', { class: visit.date.isAfter(now)? 'future' : '' }, [
-                        m('span', visit.date.format('ddd ll')),
-                        m('span', visit.date.fromNow())
+                    return m('div.due-entry', { class: date.isAfter(now)? 'future' : '' }, [
+                        m('span', date.format('ddd ll')),
+                        m('span', date.fromNow()),
+                        m('div', names.join(', '))
                     ])
-                ])
-            }))
+                }),
+            ]),
+            m('section', [
+                m('h1', 'Appointments'),
+                [ m('div.visit-entry', { onclick: () => vm.addAppointment() }, [
+                    m('div.visit-date', [m('span'), m('span.fa.fa-plus')])
+                ])].concat(vm.selected.visits.map((visitID: string) => {
+                    const visit = vm.results.visits.get(visitID)
+                    console.log(visitID)
+                    return m('div.visit-entry', {
+                        onclick: () => {}
+                    }, [
+                        m('div.visit-date', { class: visit.date.isAfter(now)? 'future' : '' }, [
+                            m('span', visit.date.format('ddd ll')),
+                            m('span', visit.date.fromNow())
+                        ])
+                    ])
+                }))
+            ])
         ])
     ])
 }

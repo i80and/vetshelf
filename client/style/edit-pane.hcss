@@ -1,0 +1,61 @@
+#record-pane {
+    width: 100%;
+    max-width: 20em;
+    display: flex;
+    flex-direction: column;
+}
+
+#edit-pane {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+#edit-pane > * {
+    padding: 5px;
+}
+
+#edit-pane .due-entry {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+#edit-pane .due-entry > :first-child {
+    width: 8em;
+    display: inline-block;
+}
+
+#edit-pane .due-entry > div {
+    margin-left: 1em;
+}
+
+#edit-pane .due-entry.future {
+    color: #aaa;
+}
+
+#edit-pane .visit-entry {
+    display: flex;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.visit-entry > .visit-date > :first-child {
+    width: 8em;
+    display: inline-block;
+}
+
+#edit-pane .visit-date:hover > span { display: inline-block; }
+
+#edit-pane .visit-entry:hover { cursor: pointer; }
+#edit-pane .visit-date:hover > span { text-decoration: underline; }
+
+#edit-pane .visit-entry .future {
+    color: #aaa;
+}
+
+#schedule-pane h1 {
+    font-size: 1.2em;
+    font-style: italic;
+    font-weight: normal;
+    border-bottom: 1px solid gray;
+}
