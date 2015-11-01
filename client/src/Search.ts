@@ -8,6 +8,7 @@ import SearchResults from './SearchResults'
 import Visit from './Visit'
 import * as optionsWidget from './optionsWidget'
 import toggleWidget from './toggleWidget'
+import * as appointmentEditor from './appointmentEditor'
 import * as util from './util'
 
 const PAUSE_INTERVAL_MS = 200
@@ -15,11 +16,13 @@ const PAUSE_INTERVAL_MS = 200
 export class ViewModel {
     private timeoutID: number
     results: SearchResults
+    appointmentEditor: appointmentEditor.Model
     selected: any
 
     constructor() {
         this.timeoutID = -1
         this.results = new SearchResults([])
+        this.appointmentEditor = null
 
         this.selected = null
 
@@ -163,8 +166,13 @@ export class ViewModel {
         return this.__selectRecord(id, (id:string) => Connection.theConnection.getPatients([id]))
     }
 
+    selectAppointment(visit: Visit) {
+        this.appointmentEditor = new appointmentEditor.Model(visit)
+    }
+
     __selectRecord(id: string, getter: (id:string)=>any) {
         m.startComputation()
+        this.appointmentEditor = null
         return getter(id).then((records: any[]) => {
             if(records.length === 0) {
                 throw util.error('KeyError', `No such record: "${id}"`)
@@ -278,7 +286,7 @@ function renderEditClient() {
 function renderEditPatient() {
     const now = moment()
 
-    return m('section#edit-pane', [
+    const children = [
         m('div#record-pane', [
             m('div.tool-bar', [
                 ...renderCommonToolbarEntries()
@@ -344,15 +352,14 @@ function renderEditPatient() {
             ]),
             m('section', [
                 m('h1', 'Appointments'),
-                [ m('div.visit-entry', { onclick: () => vm.addAppointment() }, [
-                    m('div.visit-date', [m('span'), m('span.fa.fa-plus')])
+                [ m('div.visit-entry.small-button', { onclick: () => vm.addAppointment() }, [
+                    m('div', [m('span'), m('span.fa.fa-plus')])
                 ])].concat(vm.selected.visits.map((visitID: string) => {
                     const visit = vm.results.visits.get(visitID)
-                    console.log(visitID)
                     return m('div.visit-entry', {
-                        onclick: () => {}
+                        onclick: () => { vm.selectAppointment(visit) }
                     }, [
-                        m('div.visit-date', { class: visit.date.isAfter(now)? 'future' : '' }, [
+                        m('div.visit-date', { class: visit.date.isAfter(now)? '' : 'past' }, [
                             m('span', visit.date.format('ddd ll')),
                             m('span', visit.date.fromNow())
                         ])
@@ -360,7 +367,16 @@ function renderEditPatient() {
                 }))
             ])
         ])
-    ])
+    ]
+
+    if(vm.appointmentEditor) {
+        children.push(appointmentEditor.view(vm.appointmentEditor, {
+            onsave: (m) => console.log(m.date, m.tags),
+            ondelete: () => console.log('Delete')
+        }))
+    }
+
+    return m('section#edit-pane', children)
 }
 
 function renderEditSelected() {

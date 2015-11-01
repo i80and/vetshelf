@@ -1,6 +1,7 @@
 .PHONY: all clean
 
 SRC=./src/app.ts \
+	./src/appointmentEditor.ts \
     ./src/calendarWidget.ts \
     ./src/Client.ts \
     ./src/Connection.ts \

@@ -1,72 +1,79 @@
-#search-pane {
+selector(#search-pane) {
     height: 100%;
     /*background-color: rgba(200, 200, 200, 0.5);*/
 }
 
-#search-results {
+selector(#search-results) {
     display: flex;
     flex-direction: column;
     padding: 0px;
     width: 500px;
+
+    on(COMPACT)
+        width: 250px;
+    end
 }
 
-#search-results > li {
+selector(#search-results > li) {
     display: flex;
     flex-direction: row;
     min-height: 140px;
-
     transition: margin-left 0.25s;
 }
 
-#search-results > li.active {
+selector(#search-results > li.active) {
     margin-left: 1rem;
     border-left: 1px solid black;
 }
 
-#search-results ul.patient-results {
+selector(#search-results ul.patient-results) {
     display: flex;
     padding: 0px;
     flex-direction: row;
     flex-wrap: wrap;
+
+    on(COMPACT)
+        flex-direction: column;
+    end
 }
 
-ul.patient-results > li {
+selector(ul.patient-results > li) {
     margin-left: 0.5px;
 }
 
-ul.patient-results > li.selected {
+selector(ul.patient-results > li.selected) {
     border-left: 0.5px solid #aaa;
     margin-left: 0px;
 }
 
-#search-results .fa-user {
+selector(#search-results .fa-user) {
     padding-top: 10px;
 }
 
-#search-results ul.patient-results > li {
+selector(#search-results ul.patient-results > li) {
     list-style: none;
     width: 100px;
 }
 
-#search-results .patient-info.inactive {
+selector(#search-results .patient-info.inactive) {
     color: #ddd;
 }
 
-#search-results .patient-info, #search-results .client-info {
+selector(#search-results .patient-info, #search-results .client-info) {
     padding: 10px;
 }
 
-#search-results .patient-info:hover, #search-results .client-info:hover {
+selector(#search-results .patient-info:hover, #search-results .client-info:hover) {
     /*background-color: #eee;*/
     text-decoration: underline;
     cursor: pointer;
 }
 
-#search-results .preferred {
+selector(#search-results .preferred) {
     background-color: #f4f4f4;
 }
 
-#search-results .fa.fa-user {
+selector(#search-results .fa.fa-user) {
     width: 30px;
     text-align: center;
 }

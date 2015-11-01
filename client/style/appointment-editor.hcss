@@ -1,0 +1,14 @@
+.appointment-editor-widget .calendar-month-widget {
+    width: 250px;
+    height: 250px;
+}
+
+.appointment-editor-widget .button-strip {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.appointment-editor-widget input {
+    width: 100%;
+}
