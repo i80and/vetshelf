@@ -1,16 +1,37 @@
+/* A nice set of colors from http://clrs.cc/ */
+set(NAVY, `#001f3f')
+set(BLUE, `#0074D9')
+set(AQUA, `#7FDBFF')
+set(TEAL, `#39CCCC')
+set(OLIVE, `#3D9970')
+set(GREEN, `#2ECC40')
+set(LIME, `#01FF70')
+set(YELLOW, `#FFDC00')
+set(ORANGE, `#FF851B')
+set(RED, `#FF4136')
+set(MAROON, `#85144b')
+set(FUCHSIA, `#F012BE')
+set(PURPLE, `#B10DC9')
+set(BLACK, `#111111')
+set(GRAY, `#AAAAAA')
+set(SILVER, `#DDDDDD')
+
+/* For somewhat small screens where horizontal space is at a premium. */
+breakpoint(COMPACT, max-device-width: 1200px)
+
 include(calendar.hcss)
 include(search-pane.hcss)
 include(edit-pane.hcss)
+include(appointment-editor.hcss)
 
 html {
     height: 100%;
+    color: BLACK;
 }
 
 body {
     height: 100%;
     margin: 0px;
-    /*background-image: url("backgrounds/havasupai-falls.jpg");
-    background-size: 100%;*/
 }
 
 #root-container { height: 100%; }
@@ -26,6 +47,29 @@ textarea, input, button {
     -moz-box-sizing: border-box;
     box-sizing: border-box;
     margin: 1rem 0 1rem;
+}
+
+button, input[type="button"] {
+    background-color: #E6E6E6;
+    border: none;
+    border-radius: 2px;
+    padding: 0.5em 1em;
+}
+
+.button-error, .button-primary {
+    text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
+.button-error { background-color: #CA3C3C; }
+.button-primary { background-color: #0078E7; }
+
+button:hover, input[type="button"]:hover {
+    background-image: linear-gradient(transparent, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.1));
+}
+
+button:active, input[type="button"]:active {
+    box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.15) inset, 0px 0px 6px rgba(0, 0, 0, 0.2) inset;
 }
 
 textarea {
@@ -48,7 +92,6 @@ textarea {
 .small-button {
     height: 2rem;
     display: inline-block;
-    /*width: 2rem;*/
     background: none;
     border: none;
     transition: color 0.25s;

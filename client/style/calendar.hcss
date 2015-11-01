@@ -1,15 +1,24 @@
 .calendar-month-widget {
-    width: 100%;
-    height: 100%;
-    max-width: 600px;
-    max-height: 600px;
-
     border-collapse: collapse;
     border: 1px solid #000;
 }
 
+.calendar-month-widget > tr {
+    height: 12%; /* 100% / (6 + 3 rows) */
+}
+
 .calendar-month-widget td {
     border: 1px solid #000;
+    width: 14.3%;
+}
+
+.calendar-month-widget td:hover {
+    cursor: pointer;
+    background-color: AQUA;
+}
+
+.calendar-month-widget td.selected {
+    background-color: AQUA;
 }
 
 .calendar-month-widget thead {
@@ -18,6 +27,7 @@
 
 .calendar-month-widget .calendar-button:hover {
     cursor: pointer;
+    background-color: #eee;
 }
 
 .calendar-month-widget .outside-month {

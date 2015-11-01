@@ -5,6 +5,10 @@
 // draw) use of moment. Much of it is unnecessary; we can cache almost everything,
 // either at the moment-level or at the draw level. Or both!
 
+interface ViewConfig {
+    onchange?: (d:moment.Moment) => void;
+}
+
 function listWeekdays() {
     const firstDayOfWeek = moment.localeData().firstDayOfWeek()
     const weekdays = [
@@ -21,17 +25,21 @@ function listWeekdays() {
 
 export class CalendarModel {
     events: Map<any, any>
-    selected: any
+    selected: moment.Moment
     daysInMonth: number
+    onchange: (d:moment.Moment)=>void
     _showing: moment.Moment
 
     constructor() {
         this.events = new Map<string, any>()
         this.selected = null
         this.showing = moment()
+        this.onchange = () => {}
 
         Object.seal(this)
     }
+
+    get value() { return this.selected }
 
     set showing(m: moment.Moment) {
         this._showing = m
@@ -63,13 +71,24 @@ export class CalendarModel {
     }
 }
 
-function renderMonthDay(model: CalendarModel, cursor: moment.Moment) {
-    const options: {class?: string} = {}
+function selectDay(model: CalendarModel, day: moment.Moment, options: ViewConfig) {
+    model.selected = day
+    options.onchange && options.onchange.bind(model)(day)
+}
+
+function renderMonthDay(model: CalendarModel, cursor: moment.Moment, options: ViewConfig) {
+    const elementOptions: any = {}
     if(cursor.month() !== model.showing.month()) {
-        options.class = 'outside-month'
+        elementOptions.class = 'outside-month'
     }
 
-    const element = m('td', options, [
+    if(cursor.isSame(model.selected, 'day')) {
+        elementOptions.class += ' selected'
+    }
+
+    elementOptions.onclick = selectDay.bind(null, model, cursor.clone(), options)
+
+    const element = m('td', elementOptions, [
         m('div.day-number', cursor.date())
     ])
 
@@ -78,19 +97,19 @@ function renderMonthDay(model: CalendarModel, cursor: moment.Moment) {
     return element
 }
 
-function renderMonthWeek(model: CalendarModel, cursor: moment.Moment) {
+function renderMonthWeek(model: CalendarModel, cursor: moment.Moment, options: ViewConfig) {
     return m('tr', [
-        renderMonthDay(model, cursor),
-        renderMonthDay(model, cursor),
-        renderMonthDay(model, cursor),
-        renderMonthDay(model, cursor),
-        renderMonthDay(model, cursor),
-        renderMonthDay(model, cursor),
-        renderMonthDay(model, cursor)
+        renderMonthDay(model, cursor, options),
+        renderMonthDay(model, cursor, options),
+        renderMonthDay(model, cursor, options),
+        renderMonthDay(model, cursor, options),
+        renderMonthDay(model, cursor, options),
+        renderMonthDay(model, cursor, options),
+        renderMonthDay(model, cursor, options)
     ])
 }
 
-export function monthWidget(model: CalendarModel) {
+export function monthWidget(model: CalendarModel, options: ViewConfig={}) {
     const cursor = model.showing.clone()
     cursor.startOf('month')
     cursor.startOf('week')
@@ -106,11 +125,11 @@ export function monthWidget(model: CalendarModel) {
                 m('th.calendar-button', { onclick: () => model.addYear(1) }, '»')]),
             m('tr', listWeekdays().map((name) => m('th', name))),
         ]),
-        renderMonthWeek(model, cursor),
-        renderMonthWeek(model, cursor),
-        renderMonthWeek(model, cursor),
-        renderMonthWeek(model, cursor),
-        renderMonthWeek(model, cursor),
-        renderMonthWeek(model, cursor)
+        renderMonthWeek(model, cursor, options),
+        renderMonthWeek(model, cursor, options),
+        renderMonthWeek(model, cursor, options),
+        renderMonthWeek(model, cursor, options),
+        renderMonthWeek(model, cursor, options),
+        renderMonthWeek(model, cursor, options)
     ])
 }
