@@ -37,6 +37,7 @@
     display: flex;
     padding-top: 5px;
     padding-bottom: 5px;
+    transition: padding-left 0.25s;
 }
 
 .visit-entry > .visit-date > :first-child {
@@ -51,6 +52,11 @@
 
 #edit-pane .visit-entry .past {
     color: #aaa;
+}
+
+#edit-pane .visit-entry.selected {
+    padding-left: 1rem;
+    border-left: 1px solid black;
 }
 
 #schedule-pane h1 {
