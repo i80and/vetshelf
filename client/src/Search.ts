@@ -170,6 +170,14 @@ export class ViewModel {
         this.appointmentEditor = new appointmentEditor.Model(visit)
     }
 
+    get selectedAppointment() {
+        if(this.appointmentEditor) {
+            return this.appointmentEditor.appointment
+        }
+
+        return null
+    }
+
     __selectRecord(id: string, getter: (id:string)=>any) {
         m.startComputation()
         this.appointmentEditor = null
@@ -357,7 +365,8 @@ function renderEditPatient() {
                 ])].concat(vm.selected.visits.map((visitID: string) => {
                     const visit = vm.results.visits.get(visitID)
                     return m('div.visit-entry', {
-                        onclick: () => { vm.selectAppointment(visit) }
+                        onclick: () => { vm.selectAppointment(visit) },
+                        class: vm.selectedAppointment == visit? 'selected' : ''
                     }, [
                         m('div.visit-date', { class: visit.date.isAfter(now)? '' : 'past' }, [
                             m('span', visit.date.format('ddd ll')),

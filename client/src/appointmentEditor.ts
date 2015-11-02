@@ -5,6 +5,7 @@ import * as calendarWidget from './calendarWidget'
 import Visit from './Visit'
 
 export class Model {
+    appointment: Visit
     calendar: calendarWidget.CalendarModel
     onsave: (d: moment.Moment, tags: string[])=>void
     ondelete: ()=>void
@@ -12,9 +13,10 @@ export class Model {
     rawTags: any
 
     constructor(appointment: Visit) {
+        this.appointment = appointment
         this.calendar = new calendarWidget.CalendarModel()
-        this.calendar.selected = appointment.date
-        this.calendar.showing = appointment.date
+        this.calendar.selected = appointment.date.clone()
+        this.calendar.showing = appointment.date.clone()
 
         this.rawTags = m.prop('')
         this.onsave = () => {}
