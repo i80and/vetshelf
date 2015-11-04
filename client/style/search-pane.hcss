@@ -59,11 +59,11 @@ selector(#search-results .patient-info.inactive) {
     color: #ddd;
 }
 
-selector(#search-results .patient-info, #search-results .client-info) {
+selector(#search-results .patient-info), selector(#search-results .client-info) {
     padding: 10px;
 }
 
-selector(#search-results .patient-info:hover, #search-results .client-info:hover) {
+selector(#search-results .patient-info:hover), selector(#search-results .client-info:hover) {
     /*background-color: #eee;*/
     text-decoration: underline;
     cursor: pointer;
