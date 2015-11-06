@@ -61,7 +61,7 @@ export default class SearchResults {
 
     static deserialize(data: any) {
         if(data.type !== 'search-results') {
-            throw util.error('ValueError', `Not a SearchResult instance: ${data.type}`)
+            throw util.valueError.error(`Not a SearchResult instance: ${data.type}`)
         }
 
         const clients: Client[] = []

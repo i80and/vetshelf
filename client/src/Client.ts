@@ -75,7 +75,7 @@ export default class Client {
 
     static deserialize(data: any) {
         if (data.type !== 'client') {
-            throw util.error('ValueError', `Not a client instance: ${data.type}`)
+            throw util.valueError.error(`Not a client instance: ${data.type}`)
         }
 
         return new Client(data.id, data)

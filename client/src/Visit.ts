@@ -33,7 +33,7 @@ class Visit {
 
     static deserialize(data: any): Visit {
         if(data.type !== 'visit') {
-            throw util.error('ValueError', `Not a visit instance: ${data.type}`)
+            throw util.valueError.error(`Not a visit instance: ${data.type}`)
         }
 
         const date = moment(data.date)
