@@ -81,7 +81,7 @@ export default class Patient {
     get sex() { return this._sex[0] }
     set sex(val) {
         if(['f', 'm', 'i'].indexOf(val) < 0) {
-            throw util.error('ValueError', `Invalid sex string: ${val}`)
+            throw util.valueError.error(`Invalid sex string: ${val}`)
         }
 
         this.dirty = true
@@ -129,7 +129,7 @@ export default class Patient {
 
     static deserialize(data: any) {
         if (data.type !== 'patient') {
-            throw util.error('ValueError', `Not a patient instance: ${data.type}`)
+            throw util.valueError.error(`Not a patient instance: ${data.type}`)
         }
 
         const patient = new Patient(data.id, data)

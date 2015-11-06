@@ -78,11 +78,11 @@ export class ViewModel {
 
     addPatient() {
         if(!(this.selected instanceof Client)) {
-            throw util.error('TypeError', 'Cannot create patient child of selection')
+            throw util.typeError.error('Cannot create patient child of selection')
         }
 
         if(!this.selected.id) {
-            throw util.error('ValueError', 'Selection has no ID')
+            throw util.valueError.error('Selection has no ID')
         }
 
         const patient = new Patient(null, {})
@@ -183,7 +183,7 @@ export class ViewModel {
         this.appointmentEditor = null
         return getter(id).then((records: any[]) => {
             if(records.length === 0) {
-                throw util.error('KeyError', `No such record: "${id}"`)
+                throw util.keyError.error(`No such record: "${id}"`)
             }
 
             this.selected = records[0]
