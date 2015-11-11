@@ -100,8 +100,6 @@ export class ViewModel {
         })
     }
 
-    addAppointment() {}
-
     save() {
         if(!this.dirty) { return }
 
@@ -166,8 +164,21 @@ export class ViewModel {
         return this.__selectRecord(id, (id:string) => Connection.theConnection.getPatients([id]))
     }
 
+    addAppointment() { }
+
     selectAppointment(visit: Visit) {
         this.appointmentEditor = new appointmentEditor.Model(visit)
+    }
+
+    updateAppointment(editor: appointmentEditor.Model) {
+        m.startComputation()
+        const newAppointment = editor.getNewAppointment()
+        this.results.updateVisit(newAppointment).then(() => {
+            m.endComputation()
+        }).catch((err: any) => {
+            console.error(`Failed to update visit ${newAppointment.id}`)
+            m.endComputation()
+        })
     }
 
     get selectedAppointment() {
@@ -364,23 +375,28 @@ function renderEditPatient() {
                     m('div', [m('span'), m('span.fa.fa-plus')])
                 ])].concat(vm.selected.visits.map((visitID: string) => {
                     const visit = vm.results.visits.get(visitID)
+                    if(visit === undefined) {
+                        console.error(`Couldn't find visit ${visitID}`)
+                        return null
+                    }
+
                     return m('div.visit-entry', {
                         onclick: () => { vm.selectAppointment(visit) },
-                        class: vm.selectedAppointment == visit? 'selected' : ''
+                        class: vm.selectedAppointment && vm.selectedAppointment.id == visit.id? 'selected' : ''
                     }, [
                         m('div.visit-date', { class: visit.date.isAfter(now)? '' : 'past' }, [
                             m('span', visit.date.format('ddd ll')),
                             m('span', visit.date.fromNow())
                         ])
                     ])
-                }))
+                }).filter((x: any) => x !== null))
             ])
         ])
     ]
 
     if(vm.appointmentEditor) {
         children.push(appointmentEditor.view(vm.appointmentEditor, {
-            onsave: (m) => console.log(m.date, m.tags),
+            onsave: (m) => vm.updateAppointment(m),
             ondelete: () => console.log('Delete')
         }))
     }

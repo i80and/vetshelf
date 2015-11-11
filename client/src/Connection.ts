@@ -1,5 +1,6 @@
 import Client from './Client'
 import Patient from './Patient'
+import Visit from './Visit'
 import SearchResults from'./SearchResults'
 
 const TIMEOUT_INTERVAL = 5000
@@ -136,6 +137,15 @@ export default class Connection {
         return this.__send_message(['save-client', client.serialize(), newDoc])
     }
 
+    saveVisit(visit: Visit) {
+        const newDoc = visit.id === undefined || visit.id === null
+        if(newDoc) {
+            visit.id = this.genID()
+        }
+
+        return this.__send_message(['save-visit', visit.serialize(), newDoc])
+    }
+
     login(username: string, password: string) {
         return this.__send_message(['login', username, password])
     }
@@ -170,6 +180,9 @@ export default class Connection {
             })
 
             this.pending.set(this.messageCounter, pending)
+        }).catch((e) => {
+            console.error(e)
+            throw e
         })
     }
 

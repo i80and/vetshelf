@@ -119,6 +119,10 @@ class EchoWebSocket(tornado.websocket.WebSocketHandler):
         client = vetclix.db.Client.deserialize(raw_client)
         return self.dbconn.save_client(client, no_overwrite)
 
+    def handle_save_visit(self, raw_visit: Dict[str, Any], no_overwrite: bool=False) -> str:
+        visit = vetclix.db.Visit.deserialize(raw_visit)
+        return self.dbconn.save_visit(visit, no_overwrite)
+
     def handle_clear(self) -> None:
         self.dbconn.clear()
 
