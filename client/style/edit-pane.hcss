@@ -41,7 +41,7 @@
 }
 
 .visit-entry > .visit-date > :first-child {
-    width: 8em;
+    width: 9em;
     display: inline-block;
 }
 
@@ -59,10 +59,13 @@
     border-left: 1px solid black;
 }
 
+#schedule-pane {
+    min-width: 275px;
+}
+
 #schedule-pane h1 {
     font-size: 1.2em;
     font-style: italic;
     font-weight: normal;
     border-bottom: 1px solid gray;
-    min-width: 250px;
 }

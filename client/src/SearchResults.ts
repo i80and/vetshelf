@@ -1,13 +1,18 @@
+import Connection from './Connection'
 import Client from './Client'
 import Patient from './Patient'
 import Visit from './Visit'
 import * as util from './util'
 
+type visitID = string
+type patientID = string
+
 export default class SearchResults {
     clients: Client[]
     clientIDs: string[]
     patients: Map<string, Patient>
-    visits: Map<string, Visit>
+    visits: Map<visitID, Visit>
+    visitIndex: Map<visitID, patientID>
     matchedPatients: Set<string>
     clientsIndex: Map<string, Client>
 
@@ -24,6 +29,25 @@ export default class SearchResults {
         for(let client of clients) {
             this.clientsIndex.set(client.id, client)
         }
+
+        this.visitIndex = new Map<visitID, patientID>()
+        for(let patient of this.patients.values()) {
+            for(let visit of patient.visits) {
+                this.visitIndex.set(visit, patient.id)
+            }
+        }
+    }
+
+    updateVisit(visit: Visit) {
+        return Connection.theConnection.saveVisit(visit).then((x) => {
+            this.visits.set(visit.id, visit)
+
+            // An updated visit means the patient due dates might change.
+            return Connection.theConnection.getPatients([this.visitIndex.get(visit.id)])
+        }).then((patients: Patient[]) => {
+            const patient = patients[0]
+            this.patients.set(patient.id, patient)
+        })
     }
 
     updateRecord(doc: Client|Patient) {

@@ -7,7 +7,7 @@ import Visit from './Visit'
 export class Model {
     appointment: Visit
     calendar: calendarWidget.CalendarModel
-    onsave: (d: moment.Moment, tags: string[])=>void
+    onsave: (m: Model)=>void
     ondelete: ()=>void
 
     rawTags: any
@@ -23,6 +23,10 @@ export class Model {
         this.ondelete = () => {}
 
         Object.seal(this)
+    }
+
+    getNewAppointment(): Visit {
+        return this.appointment.with({tags: this.tags, date: this.date})
     }
 
     get date() {
