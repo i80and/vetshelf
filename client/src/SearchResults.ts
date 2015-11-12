@@ -50,21 +50,18 @@ export default class SearchResults {
         })
     }
 
-    updateRecord(doc: Client|Patient) {
-        if(doc instanceof Patient) {
-            this.patients.set(doc.id, doc)
-        } else if(doc instanceof Client) {
-            this.clientsIndex.set(doc.id, doc)
-        }
+    updateClient(client: Client) {
+        return Connection.theConnection.saveClient(client).then(() => {
+            this.clientsIndex.set(client.id, client)
+        })
     }
 
-    addPatient(patient: Patient, clientID: string) {
-        const client = this.clientsIndex.get(clientID)
-
-        // Don't use the normal mutator, because it sets the dirty flag. However,
-        // we're simply updating the results to match what should be on the server.
-        client._pets.add(patient.id)
-        this.patients.set(patient.id, patient)
+    updatePatient(patient: Patient, options?: { addOwners: string[] }) {
+        const toAdd = (options && options.addOwners)? options.addOwners : []
+        return Connection.theConnection.savePatient(patient, toAdd).then((id: string) => {
+            this.patients.set(patient.id, patient)
+            return id
+        })
     }
 
     map<T>(f: (c: Client)=>T) {

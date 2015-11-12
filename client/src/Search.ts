@@ -89,12 +89,11 @@ export class ViewModel {
         const clientID = this.selected.id
 
         m.startComputation()
-        Connection.theConnection.savePatient(patient, [clientID]).then((id: string) => {
+        this.results.updatePatient(patient, { addOwners: [clientID] }).then((id: string) => {
             return this.selectPatient(id)
-        }).then((patient) => {
-            this.results.addPatient(patient, clientID)
+        }).then(() => {
             m.endComputation()
-        }).catch((msg) => {
+        }).catch((msg: any) => {
             console.error(msg)
             m.endComputation()
         })
@@ -103,27 +102,17 @@ export class ViewModel {
     save() {
         if(!this.dirty) { return }
 
-        let saver: (record:any)=>any = null
-        let getter: (id:string)=>any = null
-        if(this.selected instanceof Client) {
-            saver = Connection.theConnection.saveClient.bind(Connection.theConnection)
-            getter = this.selectClient.bind(this)
-        } else if(this.selected instanceof Patient) {
-            saver = Connection.theConnection.savePatient.bind(Connection.theConnection)
-            getter = this.selectPatient.bind(this)
-        } else {
-            return
-        }
-
         m.startComputation()
-        saver(this.selected).catch((msg: any) => {
+        new Promise((resolve) => {
+            if(this.selected instanceof Client) {
+                resolve(this.results.updateClient(this.selected))
+            } else if(this.selected instanceof Patient) {
+                resolve(this.results.updatePatient(this.selected))
+            }
+        }).catch((msg: any) => {
             console.error(msg)
             m.endComputation()
         }).then(() => {
-            getter(this.selected.id)
-            if(this.results && this.selected) {
-                this.results.updateRecord(this.selected)
-            }
             m.endComputation()
         })
     }

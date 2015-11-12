@@ -118,7 +118,7 @@ export default class Connection {
     }
 
     /// Save a patient to the database, generating a new ID if it isn't already
-    /// set. Specifies a list of client IDs for to add this patient as a pet.
+    /// set. Specifies a list of client IDs for whom to add this patient as a pet.
     savePatient(patient: Patient, clientIDs: string[]=[]) {
         const newDoc = patient.id === undefined || patient.id === null
         if(newDoc) {
