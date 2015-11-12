@@ -20,7 +20,7 @@ export default class Patient {
     constructor(id: string, options: any) {
         this._id = id
         this._name = options.name || '(unnamed)'
-        this._sex = options.sex || ''
+        this._sex = options.sex || '?+'
         this._species = options.species || ''
         this._breed = options.breed || ''
         this._description = options.description || ''
@@ -80,7 +80,7 @@ export default class Patient {
 
     get sex() { return this._sex[0] }
     set sex(val) {
-        if(['f', 'm', 'i'].indexOf(val) < 0) {
+        if(['f', 'm', '?'].indexOf(val) < 0) {
             throw util.valueError.error(`Invalid sex string: ${val}`)
         }
 
