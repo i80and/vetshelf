@@ -113,6 +113,7 @@ export class ViewModel {
             console.error(msg)
             m.endComputation()
         }).then(() => {
+            this.selected.dirty = false
             m.endComputation()
         })
     }
