@@ -154,7 +154,9 @@ export class ViewModel {
         return this.__selectRecord(id, (id:string) => Connection.theConnection.getPatients([id]))
     }
 
-    addAppointment() { }
+    addAppointment() {
+        this.appointmentEditor = new appointmentEditor.Model(Visit.emptyVisit())
+    }
 
     selectAppointment(visit: Visit) {
         this.appointmentEditor = new appointmentEditor.Model(visit)
@@ -163,7 +165,18 @@ export class ViewModel {
     updateAppointment(editor: appointmentEditor.Model) {
         m.startComputation()
         const newAppointment = editor.getNewAppointment()
-        this.results.updateVisit(newAppointment).then(() => {
+        let promise: any
+        if(newAppointment.id === null) {
+            if(!(this.selected instanceof Patient)) {
+                throw util.assertionError.error(`Not patient: "${this.selected}"`)
+            }
+
+            promise = this.results.insertVisit(this.selected.id, newAppointment)
+        } else {
+            promise = this.results.updateVisit(newAppointment)
+        }
+
+        promise.then(() => {
             m.endComputation()
         }).catch((err: any) => {
             console.error(`Failed to update visit ${newAppointment.id}`)

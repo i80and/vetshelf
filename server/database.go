@@ -34,8 +34,8 @@ func Connect(hostname string) (*Connection, error) {
 		Unique: true})
 
 	tasks := map[TaskName]time.Duration{
-		"heartworm": time.Duration(15768000),
-		"exam":      time.Duration(15768000.0)}
+		"heartworm": time.Duration(4380) * time.Hour,
+		"exam":      time.Duration(4380) * time.Hour}
 
 	return &Connection{session,
 		db,
@@ -136,6 +136,18 @@ func (c *Connection) SetOwners(p PatientID, owners []ClientID) error {
 	err := c.DB.C("test").Update(
 		bson.M{"_id": bson.M{"$in": owners}, "type": "client"},
 		bson.M{"$addToSet": bson.M{"pets": p}})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Connection) InsertVisit(patient PatientID, v *DatabaseVisit) error {
+	err := c.DB.C("test").Update(
+		bson.M{"_id": patient, "type": "patient"},
+		bson.M{"$addToSet": bson.M{"visits": v}})
 
 	if err != nil {
 		return err

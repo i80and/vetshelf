@@ -32,6 +32,10 @@ func DeserializeResponseVisit(data map[string]interface{}) (ret *ResponseVisit, 
 		Tasks: []string{},
 		Note:  data["note"].(string)}
 
+	for _, task := range data["tasks"].([]interface{}) {
+		visit.Tasks = append(visit.Tasks, task.(string))
+	}
+
 	return visit, nil
 }
 
@@ -93,7 +97,12 @@ func (v *DatabaseVisit) ToResponse(connection *Connection) (*ResponseVisit, erro
 }
 
 func (v *DatabaseVisit) HasTask(task TaskName) bool {
-	return 0 > sort.Search(len(v.Tasks), func(i int) bool {
-		return v.Tasks[i] >= task
-	})
+	for _, curTask := range v.Tasks {
+		if curTask == task {
+			Info.Printf("Found task %s", task)
+			return true
+		}
+	}
+
+	return false
 }

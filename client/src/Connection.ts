@@ -138,13 +138,15 @@ export default class Connection {
         return this.__send_message(['save-client', client.serialize(), newDoc])
     }
 
-    saveVisit(visit: Visit) {
+    saveVisit(patientID: string, visit: Visit) {
         const newDoc = visit.id === undefined || visit.id === null
         if(newDoc) {
             visit.id = this.genID()
+            console.error(patientID)
+            return this.__send_message(['insert-visit', patientID, visit.serialize()])
         }
 
-        return this.__send_message(['save-visit', visit.serialize(), newDoc])
+        return this.__send_message(['update-visit', visit.serialize()])
     }
 
     login(username: string, password: string) {

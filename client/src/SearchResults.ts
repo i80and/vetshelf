@@ -38,12 +38,25 @@ export default class SearchResults {
         }
     }
 
-    updateVisit(visit: Visit) {
-        return Connection.theConnection.saveVisit(visit).then((x) => {
+    insertVisit(patientID: string, visit: Visit) {
+        return Connection.theConnection.saveVisit(patientID, visit).then((x) => {
             this.visits.set(visit.id, visit)
 
             // An updated visit means the patient due dates might change.
-            return Connection.theConnection.getPatients([this.visitIndex.get(visit.id)])
+            return Connection.theConnection.getPatients([patientID])
+        }).then((patients: Patient[]) => {
+            const patient = patients[0]
+            this.patients.set(patient.id, patient)
+        })
+    }
+
+    updateVisit(visit: Visit) {
+        const patientID = this.visitIndex.get(visit.id)
+        return Connection.theConnection.saveVisit(patientID, visit).then((x) => {
+            this.visits.set(visit.id, visit)
+
+            // An updated visit means the patient due dates might change.
+            return Connection.theConnection.getPatients([patientID])
         }).then((patients: Patient[]) => {
             const patient = patients[0]
             this.patients.set(patient.id, patient)

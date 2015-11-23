@@ -10,7 +10,7 @@ export class Model {
     onsave: (m: Model)=>void
     ondelete: ()=>void
 
-    rawTags: any
+    rawTasks: (p?: string)=>string
 
     constructor(appointment: Visit) {
         this.appointment = appointment
@@ -18,7 +18,7 @@ export class Model {
         this.calendar.selected = appointment.date.clone()
         this.calendar.showing = appointment.date.clone()
 
-        this.rawTags = m.prop('')
+        this.rawTasks = m.prop(this.appointment.tasks.join(','))
         this.onsave = () => {}
         this.ondelete = () => {}
 
@@ -26,15 +26,15 @@ export class Model {
     }
 
     getNewAppointment(): Visit {
-        return this.appointment.with({tags: this.tags, date: this.date})
+        return this.appointment.with({tasks: this.tasks, date: this.date})
     }
 
     get date() {
         return this.calendar.selected
     }
 
-    get tags() {
-        return this.rawTags().split(/[^a-z]+/)
+    get tasks() {
+        return this.rawTasks().split(/[^a-z]+/)
     }
 }
 
@@ -50,7 +50,10 @@ export function view(model: Model, options: ViewConfig={}) {
     return m('div.appointment-editor-widget', {}, [
         calendarWidget.monthWidget(model.calendar),
         m('div', {}, [
-            m('input', { onchange: m.withAttr('value', model.rawTags), placeholder: 'Completed Tasks' }),
+            m('input', {
+                onchange: m.withAttr('value', model.rawTasks),
+                value: model.rawTasks(),
+                placeholder: 'Completed Tasks' }),
         ]),
         m('div.button-strip', {}, [
             m('button.button-primary', { onclick: () => options.onsave(model) }, 'Save'),

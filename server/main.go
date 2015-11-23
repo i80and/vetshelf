@@ -328,6 +328,44 @@ func (a *Application) HandleSaveClient(args []interface{}, out *Message) {
 	out.Message = client.ID
 }
 
+func (a *Application) HandleInsertVisit(args []interface{}, out *Message) {
+	if len(args) < 2 {
+		Error.Printf("Insufficient arguments to insert-visit")
+		return
+	}
+
+	var patient PatientID
+	switch args[0].(type) {
+	case string:
+		patient = PatientID(args[0].(string))
+	}
+
+	var rawVisit *ResponseVisit
+	switch args[1].(type) {
+	case map[string]interface{}:
+		var err error
+		rawVisit, err = DeserializeResponseVisit(args[1].(map[string]interface{}))
+		if err != nil {
+			Error.Printf("Error deserializing visit: %v", err)
+			return
+		}
+	}
+
+	visit, err := rawVisit.ToRealVisit(a.Connection)
+	if err != nil {
+		Error.Printf("Error actualizing visit: %v", err)
+		return
+	}
+
+	err = a.Connection.InsertVisit(patient, visit)
+	if err != nil {
+		Error.Printf("Error inserting visit %s in patient %s: %v", visit.ID, patient, err)
+		return
+	}
+
+	out.Message = visit.ID
+}
+
 func (a *Application) HandleUpdateVisit(args []interface{}, out *Message) {
 	if len(args) < 1 {
 		Error.Printf("Insufficient arguments to update-visit")
@@ -353,7 +391,7 @@ func (a *Application) HandleUpdateVisit(args []interface{}, out *Message) {
 
 	err = a.Connection.UpdateVisit(visit)
 	if err != nil {
-		Error.Printf("Error saving visit %s: %v", visit.ID, err)
+		Error.Printf("Error updating visit %s: %v", visit.ID, err)
 		return
 	}
 
@@ -396,7 +434,9 @@ func (a *Application) DispatchMethod(args []interface{}, out *Message) {
 		a.HandleSavePatient(args, out)
 	case "save-client":
 		a.HandleSaveClient(args, out)
-	case "save-visit":
+	case "insert-visit":
+		a.HandleInsertVisit(args, out)
+	case "update-visit":
 		a.HandleUpdateVisit(args, out)
 	case "clear":
 		a.HandleClear(out)

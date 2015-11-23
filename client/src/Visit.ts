@@ -5,23 +5,23 @@ import * as util from './util'
 export default class Visit {
     id: string
     date: moment.Moment
-    tags: string[]
+    tasks: string[]
     note: string
     committed: any
 
-    constructor(id: string, date: moment.Moment, tags: string[], note: string) {
+    constructor(id: string, date: moment.Moment, tasks: string[], note: string) {
         this.id = id
         this.date = date || moment()
-        this.tags = tags || []
+        this.tasks = tasks || []
         this.note = note || ''
 
-        Object.freeze(this.tags)
+        Object.freeze(this.tasks)
     }
 
-    with(fields: {date?: moment.Moment, note?: string, tags?: string[]}): Visit {
+    with(fields: {date?: moment.Moment, note?: string, tasks?: string[]}): Visit {
         return new Visit(this.id,
                          (fields.date === undefined) ? this.date : fields.date,
-                         (fields.tags === undefined) ? this.tags : fields.tags,
+                         (fields.tasks === undefined) ? this.tasks : fields.tasks,
                          (fields.note === undefined) ? this.note : fields.note)
     }
 
@@ -29,7 +29,7 @@ export default class Visit {
         return {
             id: this.id,
             date: this.date.toISOString(),
-            tags: this.tags,
+            tasks: this.tasks,
             committed: this.committed,
             note: this.note
         }
@@ -37,6 +37,10 @@ export default class Visit {
 
     static deserialize(data: any): Visit {
         const date = moment(data.date)
-        return new Visit(data.id, date, data.tags, data.note)
+        return new Visit(data.id, date, data.tasks, data.note)
+    }
+
+    static emptyVisit(): Visit {
+        return new Visit(null, moment(), [], '')
     }
 }
