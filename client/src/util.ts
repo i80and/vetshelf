@@ -1,5 +1,14 @@
 type Symbol = any
 
+export function fromNowMinimum(m: moment.Moment): string {
+    const now = moment()
+    if(m.diff(now, 'hours') <= 1) {
+        return 'now'
+    }
+
+    return m.from(now)
+}
+
 export class SimpleError {
     name: string
     private errors: Symbol[]

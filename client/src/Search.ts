@@ -367,7 +367,7 @@ function renderEditPatient() {
 
                     return m('div.due-entry', { class: date.isAfter(now)? 'future' : '' }, [
                         m('span', date.format('ddd ll')),
-                        m('span', date.fromNow()),
+                        m('span', util.fromNowMinimum(date)),
                         m('div', names.join(', '))
                     ])
                 }),

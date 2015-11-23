@@ -99,7 +99,6 @@ func (v *DatabaseVisit) ToResponse(connection *Connection) (*ResponseVisit, erro
 func (v *DatabaseVisit) HasTask(task TaskName) bool {
 	for _, curTask := range v.Tasks {
 		if curTask == task {
-			Info.Printf("Found task %s", task)
 			return true
 		}
 	}

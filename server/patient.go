@@ -161,7 +161,6 @@ func (p *DatabasePatient) ToResponse(connection *Connection) (*ResponsePatient, 
 
 	// Compute due dates
 	for taskName, interval := range connection.Tasks {
-		Info.Printf("%s %v", taskName, interval)
 		// For each task type, find the most recent
 		lastVisit := p.LastVisitWithTask(taskName)
 
