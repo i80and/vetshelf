@@ -8,7 +8,6 @@ type visitID = string
 type patientID = string
 
 export default class SearchResults {
-    clients: Client[]
     clientIDs: string[]
     patients: Map<string, Patient>
     visits: Map<visitID, Visit>
@@ -65,7 +64,13 @@ export default class SearchResults {
 
     updateClient(client: Client) {
         return Connection.theConnection.saveClient(client).then(() => {
+            if(!this.clientsIndex.has(client.id)) {
+                // New client; put it at the top of the clients list
+                this.clientIDs.splice(0, 0, client.id)
+            }
+
             this.clientsIndex.set(client.id, client)
+            return client.id
         })
     }
 
@@ -87,7 +92,6 @@ export default class SearchResults {
     }
 
     clear() {
-        this.clients = []
         this.patients.clear()
         this.matchedPatients.clear()
         this.clientsIndex.clear()

@@ -66,7 +66,7 @@ export class ViewModel {
         const client = new Client(null, {})
 
         m.startComputation()
-        Connection.theConnection.saveClient(client).then((id: string) => {
+        this.results.updateClient(client).then((id: string) => {
             return this.selectClient(id)
         }).then(() => {
             m.endComputation()
