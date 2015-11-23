@@ -14,19 +14,24 @@ export async function test(connection) {
     const origGenID = Connection.prototype.genID
     let caught = 0
     try {
-        Connection.prototype.genID = () => { return '' }
 
         await connection.clear()
+
+        Connection.prototype.genID = () => { return 'c' }
         await connection.saveClient(new Client(null, {}))
+
+        Connection.prototype.genID = () => { return 'p' }
         await connection.savePatient(new Patient(null, {}))
 
         try {
+            Connection.prototype.genID = () => { return 'c' }
             await connection.saveClient(new Client(null, {}))
         } catch(err) {
             caught += 1
         }
 
         try {
+            Connection.prototype.genID = () => { return 'p' }
             await connection.savePatient(new Patient(null, {}))
         } catch(err) {
             caught += 1

@@ -23,6 +23,7 @@ var (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	Subprotocols:    []string{"vetclix"},
 	CheckOrigin: func(*http.Request) bool {
 		return true
 	},
@@ -405,6 +406,15 @@ func (a *Application) HandleClear(out *Message) {
 		Error.Println("Attempt to clear a non-testing instance")
 		return
 	}
+
+	Warning.Println("Clearing database")
+	err := a.Connection.Clear()
+	if err != nil {
+		Error.Printf("Error clearing database: %v", err)
+		return
+	}
+
+	out.Message = "ok"
 }
 
 func (a *Application) DispatchMethod(args []interface{}, out *Message) {

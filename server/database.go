@@ -172,6 +172,16 @@ func (c *Connection) Search(query string) (*SearchResults, error) {
 	return nil, nil
 }
 
+func (c *Connection) Clear() error {
+	_, err := c.DB.C("test").RemoveAll(bson.M{})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Connection) Close() {
 	c.Session.Close()
 }
