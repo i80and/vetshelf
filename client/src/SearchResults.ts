@@ -33,7 +33,7 @@ export default class SearchResults {
         this.visitIndex = new Map<visitID, patientID>()
         for(let patient of this.patients.values()) {
             for(let visit of patient.visits) {
-                this.visitIndex.set(visit, patient.id)
+                this.visitIndex.set(visit.id, patient.id)
             }
         }
     }

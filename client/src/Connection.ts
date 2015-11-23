@@ -74,6 +74,7 @@ export default class Connection {
 
             if(!Number.isInteger(data.i)) {
                 console.warn('Received unknown message', data)
+                return
             }
 
             const pending = this.pending.get(data.i)

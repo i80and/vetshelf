@@ -363,10 +363,9 @@ function renderEditPatient() {
                 m('h1', 'Appointments'),
                 [ m('div.visit-entry.small-button', { onclick: () => vm.addAppointment() }, [
                     m('div', [m('span'), m('span.fa.fa-plus')])
-                ])].concat(vm.selected.visits.map((visitID: string) => {
-                    const visit = vm.results.visits.get(visitID)
+                ])].concat(vm.selected.visits.map((visit: Visit) => {
                     if(visit === undefined) {
-                        console.error(`Couldn't find visit ${visitID}`)
+                        console.error(`Couldn't find visit ${visit.id}`)
                         return null
                     }
 

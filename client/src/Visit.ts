@@ -28,7 +28,6 @@ export default class Visit {
     serialize() {
         return {
             id: this.id,
-            type: 'visit',
             date: this.date.toISOString(),
             tags: this.tags,
             committed: this.committed,
@@ -37,10 +36,6 @@ export default class Visit {
     }
 
     static deserialize(data: any): Visit {
-        if(data.type !== 'visit') {
-            throw util.valueError.error(`Not a visit instance: ${data.type}`)
-        }
-
         const date = moment(data.date)
         return new Visit(data.id, date, data.tags, data.note)
     }

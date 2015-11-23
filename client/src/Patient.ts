@@ -14,7 +14,7 @@ export default class Patient {
     _active: boolean
     _due: Map<string, moment.Moment>
 
-    visits: string[]
+    visits: Visit[]
     dirty: boolean
 
     constructor(id: string, options: any) {
@@ -132,8 +132,8 @@ export default class Patient {
             throw util.valueError.error(`Not a patient instance: ${data.type}`)
         }
 
+        data.visits = data.visits.map((v: any) => Visit.deserialize(v))
         const patient = new Patient(data.id, data)
-        patient.visits = patient.visits
 
         const due = new Map<string, moment.Moment>()
         for (let name in data.due) {
