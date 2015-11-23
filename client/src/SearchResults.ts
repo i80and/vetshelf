@@ -37,6 +37,14 @@ export default class SearchResults {
         }
     }
 
+    client(id: string): Client {
+        return this.clientsIndex.get(id)
+    }
+
+    patient(id: string): Patient {
+        return this.patients.get(id)
+    }
+
     insertVisit(patientID: string, visit: Visit) {
         return Connection.theConnection.saveVisit(patientID, visit).then((x) => {
             this.visits.set(visit.id, visit)

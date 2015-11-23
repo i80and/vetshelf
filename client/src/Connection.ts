@@ -142,7 +142,6 @@ export default class Connection {
         const newDoc = visit.id === undefined || visit.id === null
         if(newDoc) {
             visit.id = this.genID()
-            console.error(patientID)
             return this.__send_message(['insert-visit', patientID, visit.serialize()])
         }
 

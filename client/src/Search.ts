@@ -17,7 +17,9 @@ export class ViewModel {
     private timeoutID: number
     results: SearchResults
     appointmentEditor: appointmentEditor.Model
-    selected: any
+
+    __selectedClient: string
+    __selectedPatient: string
 
     constructor() {
         this.timeoutID = -1
@@ -32,6 +34,34 @@ export class ViewModel {
     get dirty() {
         if(!this.selected) { return false }
         return this.selected.dirty
+    }
+
+    get selected(): Client | Patient {
+        if (this.__selectedClient) { return this.results.client(this.__selectedClient) }
+        if (this.__selectedPatient) { return this.results.patient(this.__selectedPatient) }
+        return null
+    }
+
+    get selectedClient(): Client {
+        if (this.__selectedClient) { return this.results.client(this.__selectedClient) }
+        throw util.assertionError.error('Attempt to access client when patient selected')
+    }
+
+    get selectedPatient(): Patient {
+        if (this.__selectedPatient) { return this.results.patient(this.__selectedPatient) }
+        throw util.assertionError.error('Attempt to access patient when client selected')
+    }
+
+    set selected(record: Client | Patient) {
+        if(record instanceof Client) {
+            this.__selectedClient = record.id
+            this.__selectedPatient = ''
+        } else if(record instanceof Patient) {
+            this.__selectedClient = null
+            this.__selectedPatient = record.id
+        } else {
+            this.__selectedClient = this.__selectedPatient = ''
+        }
     }
 
     isSelected(record: any) {
@@ -104,10 +134,12 @@ export class ViewModel {
 
         m.startComputation()
         new Promise((resolve) => {
-            if(this.selected instanceof Client) {
-                resolve(this.results.updateClient(this.selected))
-            } else if(this.selected instanceof Patient) {
-                resolve(this.results.updatePatient(this.selected))
+            const selected = this.selected
+
+            if(selected instanceof Client) {
+                resolve(this.results.updateClient(selected))
+            } else if(selected instanceof Patient) {
+                resolve(this.results.updatePatient(selected))
             }
         }).catch((msg: any) => {
             console.error(msg)
@@ -155,7 +187,14 @@ export class ViewModel {
     }
 
     addAppointment() {
-        this.appointmentEditor = new appointmentEditor.Model(Visit.emptyVisit())
+        const newVisit = Visit.emptyVisit()
+        m.startComputation()
+        this.results.insertVisit(this.selected.id, newVisit).then(() => {
+            this.appointmentEditor = new appointmentEditor.Model(newVisit)
+            m.endComputation()
+        }).catch(() => {
+            m.endComputation()
+        })
     }
 
     selectAppointment(visit: Visit) {
@@ -294,8 +333,8 @@ function renderEditClient() {
                 oninput: function() { vm.selected.name = this.value } }),
             m('input', {
                 placeholder: 'Address',
-                value: vm.selected.address,
-                oninput: function() { vm.selected.address = this.value } }),
+                value: vm.selectedClient.address,
+                oninput: function() { vm.selectedClient.address = this.value } }),
             m('textarea', {
                 placeholder: 'Notes',
                 rows: 5,
@@ -320,11 +359,11 @@ function renderEditPatient() {
             m('input', {
                 placeholder: 'Species',
                 list: 'species-datalist',
-                value: vm.selected.species,
-                oninput: function() { vm.selected.species = this.value } }),
+                value: vm.selectedPatient.species,
+                oninput: function() { vm.selectedPatient.species = this.value } }),
             optionsWidget.optionsWidget({
-                onclick: (val: string) => vm.selected.sex = val,
-                value: vm.selected.sex,
+                onclick: (val: string) => vm.selectedPatient.sex = val,
+                value: vm.selectedPatient.sex,
                 states: [
                     new optionsWidget.State('m',
                         () => m('span.fa.fa-mars', { title: 'Male' })),
@@ -333,19 +372,19 @@ function renderEditPatient() {
             }),
             m('div', [
                 toggleWidget({
-                    value: vm.selected.intact,
-                    ontoggle: (val: string) => vm.selected.intact = val ,
-                    onprompt: () => !vm.selected.intact? window.confirm('You are un-fixing a patient. Are you sure?') : true }),
+                    value: vm.selectedPatient.intact,
+                    ontoggle: (val: boolean) => vm.selectedPatient.intact = val ,
+                    onprompt: () => !vm.selectedPatient.intact? window.confirm('You are un-fixing a patient. Are you sure?') : true }),
                 m('span.left-padded', 'Intact')
             ]),
             m('input', {
                 placeholder: 'Breed',
-                value: vm.selected.breed,
-                oninput: function() { vm.selected.breed = this.value } }),
+                value: vm.selectedPatient.breed,
+                oninput: function() { vm.selectedPatient.breed = this.value } }),
             m('input', {
                 placeholder: 'Physical Description',
-                value: vm.selected.description,
-                oninput: function() { vm.selected.description = this.value } }),
+                value: vm.selectedPatient.description,
+                oninput: function() { vm.selectedPatient.description = this.value } }),
             m('textarea', {
                 placeholder: 'Notes',
                 rows: 5,
@@ -353,8 +392,8 @@ function renderEditPatient() {
                 oninput: function() { vm.selected.note = this.value } }),
             m('div', [
                 toggleWidget({
-                    value: vm.selected.active,
-                    ontoggle: (val: string) => vm.selected.active = val,
+                    value: vm.selectedPatient.active,
+                    ontoggle: (val: boolean) => vm.selectedPatient.active = val,
                     onprompt: () => window.confirm('Are you sure you want to change this patient\'s status?')}),
                 m('span.left-padded', 'Active')
             ])
@@ -362,7 +401,7 @@ function renderEditPatient() {
         m('div#schedule-pane', [
             m('section', [
                 m('h1', 'Due'),
-                vm.selected.dueByDate().map((kv: [moment.Moment, string[]]) => {
+                vm.selectedPatient.dueByDate().map((kv: [moment.Moment, string[]]) => {
                     const [date, names] = kv
 
                     return m('div.due-entry', { class: date.isAfter(now)? 'future' : '' }, [
@@ -376,7 +415,7 @@ function renderEditPatient() {
                 m('h1', 'Appointments'),
                 [ m('div.visit-entry.small-button', { onclick: () => vm.addAppointment() }, [
                     m('div', [m('span'), m('span.fa.fa-plus')])
-                ])].concat(vm.selected.visits.map((visit: Visit) => {
+                ])].concat(vm.selectedPatient.visits.map((visit: Visit) => {
                     if(visit === undefined) {
                         console.error(`Couldn't find visit ${visit.id}`)
                         return null

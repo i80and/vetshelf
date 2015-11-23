@@ -25,9 +25,9 @@ export default class Patient {
         this._breed = options.breed || ''
         this._description = options.description || ''
         this._note = options.note || ''
-        this._active = options.active
+        this._active = options.active || false
 
-        this._due = options.due
+        this._due = options.due || new Map<string, moment.Moment>()
 
         if(this._active === undefined) {
             this._active = true
