@@ -133,6 +133,10 @@ func (c *Connection) SavePatient(patient *DatabasePatient, isNewPatient bool) er
 }
 
 func (c *Connection) SetOwners(p PatientID, owners []ClientID) error {
+	if len(owners) == 0 {
+		return nil
+	}
+
 	err := c.DB.C("test").Update(
 		bson.M{"_id": bson.M{"$in": owners}, "type": "client"},
 		bson.M{"$addToSet": bson.M{"pets": p}})

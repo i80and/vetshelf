@@ -78,7 +78,17 @@ export default class SearchResults {
         const toAdd = (options && options.addOwners)? options.addOwners : []
         return Connection.theConnection.savePatient(patient, toAdd).then((id: string) => {
             this.patients.set(patient.id, patient)
-            return id
+            return this.refreshClients(toAdd)
+        }).then(() => {
+            return patient.id
+        })
+    }
+
+    refreshClients(clients: string[]) {
+        return Connection.theConnection.getClients(clients).then((clients) => {
+            for(let client of clients) {
+                this.clientsIndex.set(client.id, client)
+            }
         })
     }
 

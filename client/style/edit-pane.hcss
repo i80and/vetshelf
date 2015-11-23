@@ -21,7 +21,7 @@
 }
 
 #edit-pane .due-entry > :first-child {
-    width: 8em;
+    width: 9em;
     display: inline-block;
 }
 
