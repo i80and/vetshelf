@@ -115,7 +115,7 @@ export class ViewModel {
             throw util.valueError.error('Selection has no ID')
         }
 
-        const patient = new Patient(null, {})
+        const patient = Patient.emptyPatient()
         const clientID = this.selected.id
 
         m.startComputation()

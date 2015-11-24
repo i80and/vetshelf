@@ -148,4 +148,8 @@ export default class Patient {
 
         return patient
     }
+
+    static emptyPatient(): Patient {
+        return new Patient(null, {active: true})
+    }
 }
