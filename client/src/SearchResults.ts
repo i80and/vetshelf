@@ -48,6 +48,7 @@ export default class SearchResults {
     insertVisit(patientID: string, visit: Visit) {
         return Connection.theConnection.saveVisit(patientID, visit).then((x) => {
             this.visits.set(visit.id, visit)
+            this.visitIndex.set(visit.id, patientID)
 
             // An updated visit means the patient due dates might change.
             return Connection.theConnection.getPatients([patientID])
@@ -59,6 +60,8 @@ export default class SearchResults {
 
     updateVisit(visit: Visit) {
         const patientID = this.visitIndex.get(visit.id)
+        if(!patientID) { throw util.valueError.error(`Couldn't find patient for visit ${visit.id}`) }
+
         return Connection.theConnection.saveVisit(patientID, visit).then((x) => {
             this.visits.set(visit.id, visit)
 

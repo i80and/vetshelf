@@ -218,8 +218,9 @@ export class ViewModel {
         promise.then(() => {
             m.endComputation()
         }).catch((err: any) => {
-            console.error(`Failed to update visit ${newAppointment.id}`)
             m.endComputation()
+            console.error(`Failed to update visit ${newAppointment.id}`)
+            throw err
         })
     }
 
