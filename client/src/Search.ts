@@ -151,16 +151,17 @@ export class ViewModel {
     }
 
     revert() {
-        if(!this.dirty) { return }
-
-        if(!window.confirm('Are you sure you want to revert your working changes?')) {
-            return
+        if(this.dirty) {
+            if (!window.confirm('Are you sure you want to revert your working changes?')) {
+                return
+            }
         }
 
-        if(this.selected instanceof Client) {
-            return this.selectClient(this.selected.id)
-        } else if(this.selected instanceof Patient) {
-            return this.selectPatient(this.selected.id)
+        const selected = this.selected
+        if(selected instanceof Client) {
+            return this.selectClient(selected.id)
+        } else if(selected instanceof Patient) {
+            return this.selectPatient(selected.id)
         }
     }
 
@@ -179,11 +180,19 @@ export class ViewModel {
     }
 
     selectClient(id: string) {
-        return this.__selectRecord(id, (id:string) => Connection.theConnection.getClients([id]))
+        return this.__selectRecord(id, (id: string) => {
+            return this.results.refreshClients([id]).then(() => {
+                return this.results.client(id)
+            })
+        })
     }
 
     selectPatient(id: string) {
-        return this.__selectRecord(id, (id:string) => Connection.theConnection.getPatients([id]))
+        return this.__selectRecord(id, (id: string) => {
+            return this.results.refreshPatients([id]).then(() => {
+                return this.results.patient(id)
+            })
+        })
     }
 
     addAppointment() {
@@ -235,15 +244,11 @@ export class ViewModel {
     __selectRecord(id: string, getter: (id:string)=>any) {
         m.startComputation()
         this.appointmentEditor = null
-        return getter(id).then((records: any[]) => {
-            if(records.length === 0) {
-                throw util.keyError.error(`No such record: "${id}"`)
-            }
-
-            this.selected = records[0]
+        return getter(id).then((record: Client|Patient) => {
+            this.selected = record
             m.endComputation()
 
-            return records[0]
+            return record
         }).catch((msg: any) => {
             console.error(msg)
             m.endComputation()
@@ -313,7 +318,6 @@ function renderCommonToolbarEntries() {
             onclick: () => vm.save() }, m('span.fa.fa-save')),
         m('div.small-button', {
             title: 'Revert',
-            class: vm.dirty? '' : 'inactive',
             onclick: () => vm.revert() }, m('span.fa.fa-undo'))
     ]
 }

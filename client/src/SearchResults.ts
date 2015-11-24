@@ -38,11 +38,20 @@ export default class SearchResults {
     }
 
     client(id: string): Client {
-        return this.clientsIndex.get(id)
+        const client = this.clientsIndex.get(id)
+        if(!client) {
+            throw util.keyError.error(`No such client: "${id}"`)
+        }
+
+        return client
     }
 
     patient(id: string): Patient {
-        return this.patients.get(id)
+        const patient = this.patients.get(id)
+        if (!patient) {
+            throw util.keyError.error(`No such patient: "${id}"`)
+        }
+        return patient
     }
 
     insertVisit(patientID: string, visit: Visit) {
@@ -99,6 +108,14 @@ export default class SearchResults {
         return Connection.theConnection.getClients(clients).then((clients) => {
             for(let client of clients) {
                 this.clientsIndex.set(client.id, client)
+            }
+        })
+    }
+
+    refreshPatients(ids: string[]) {
+        return Connection.theConnection.getPatients(ids).then((patients) => {
+            for (let patient of patients) {
+                this.patients.set(patient.id, patient)
             }
         })
     }
