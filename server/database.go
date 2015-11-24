@@ -11,7 +11,7 @@ type TaskName string
 type DocumentType string
 
 type SearchResults struct {
-	Clients         []*DatabaseClient
+	Clients         []DatabaseClient
 	MatchedPatients []PatientID
 }
 
@@ -32,6 +32,9 @@ func Connect(hostname string) (*Connection, error) {
 		Key:    []string{"visits.id"},
 		Sparse: true,
 		Unique: true})
+	db.C("test").EnsureIndex(mgo.Index{
+		Key:    []string{"visits.date"},
+		Sparse: true})
 
 	tasks := map[TaskName]time.Duration{
 		"heartworm": time.Duration(4380) * time.Hour,
@@ -64,6 +67,50 @@ func (c *Connection) GetPatients(ids []PatientID) ([]*DatabasePatient, error) {
 	return patients, nil
 }
 
+func (c *Connection) GetOwners(ids []PatientID) ([]DatabaseClient, error) {
+	var clients []DatabaseClient
+
+	err := c.DB.C("test").Find(bson.M{"type": "client", "pets": bson.M{"$in": ids}}).
+		Limit(1000).
+		All(&clients)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort the results so that clients are represented in the same order as
+	// their first patient in ids.
+
+	// First things first: create an index of patient -> index
+	patientIndex := map[PatientID]int{}
+	for i, patient := range ids {
+		patientIndex[patient] = i
+	}
+
+	// Now do the sort
+	SortClients(clients, func(clientA, clientB *DatabaseClient) bool {
+		// The pet lists should never be zero-length, since these clients were
+		// found from the patient list we were given.
+		firstPatientA := len(patientIndex)
+		firstPatientB := len(patientIndex)
+
+		for _, patientID := range clientA.Pets {
+			if patientIndex[patientID] < firstPatientA {
+				firstPatientA = patientIndex[patientID]
+			}
+		}
+
+		for _, patientID := range clientB.Pets {
+			if patientIndex[patientID] < firstPatientB {
+				firstPatientB = patientIndex[patientID]
+			}
+		}
+
+		return firstPatientA < firstPatientB
+	})
+
+	return clients, nil
+}
+
 func (c *Connection) GetVisit(id VisitID) (*DatabaseVisit, error) {
 	var visit DatabaseVisit
 	err := c.DB.C("test").Find(bson.M{"id": id, "type": "visit"}).One(&visit)
@@ -75,24 +122,34 @@ func (c *Connection) GetVisit(id VisitID) (*DatabaseVisit, error) {
 }
 
 func (c *Connection) GetUpcoming() (*SearchResults, error) {
-	// TODO For now only return an arbitrary set of documents
 	var results SearchResults
-	var rows []*DatabaseClient
+	var rows []*DatabasePatient
 
-	err := c.DB.C("test").Find(bson.M{"type": "client"}).Limit(100).All(&rows)
+	today := time.Now().Format(ISOTime)
+	err := c.DB.C("test").Find(bson.M{"type": "patient", "visits.date": bson.M{"$gt": today}}).
+		Sort("visits.date").
+		Select(bson.M{"_id": 1}).
+		Limit(100).
+		All(&rows)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, client := range rows {
-		results.Clients = append(results.Clients, client)
+	patientIDs := []PatientID{}
+	for _, patient := range rows {
+		patientIDs = append(patientIDs, patient.ID)
 	}
 
+	results.Clients, err = c.GetOwners(patientIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	results.MatchedPatients = patientIDs
 	return &results, nil
 }
 
-func (c *Connection) GetPatientDueDates(patient *DatabasePatient) (map[TaskName]time.Time, error) {
-	// TODO
+func (c *Connection) Search(query string) (*SearchResults, error) {
 	return nil, nil
 }
 
@@ -170,10 +227,6 @@ func (c *Connection) UpdateVisit(v *DatabaseVisit) error {
 	}
 
 	return nil
-}
-
-func (c *Connection) Search(query string) (*SearchResults, error) {
-	return nil, nil
 }
 
 func (c *Connection) Clear() error {

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"gopkg.in/mgo.v2"
 )
@@ -86,4 +87,27 @@ func (p *DatabaseClient) ToResponse(connection *Connection) (*ResponseClient, er
 		Note:    p.Note}
 
 	return &response, nil
+}
+
+type clientSorter struct {
+	values []DatabaseClient
+	by     func(p1, p2 *DatabaseClient) bool
+}
+
+func (s *clientSorter) Len() int {
+	return len(s.values)
+}
+
+func (s *clientSorter) Swap(i, j int) {
+	s.values[i], s.values[j] = s.values[j], s.values[i]
+}
+
+func (s *clientSorter) Less(i, j int) bool {
+	return s.by(&s.values[i], &s.values[j])
+}
+
+// Sort a list of DatabaseClient instances using the given comparison function.
+func SortClients(values []DatabaseClient, by func(p1, p2 *DatabaseClient) bool) {
+	sorter := clientSorter{values: values, by: by}
+	sort.Sort(&sorter)
 }
