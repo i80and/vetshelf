@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all clean jshint
 
 SRC=./src/app.ts \
 	./src/appointmentEditor.ts \
@@ -38,6 +38,9 @@ build:
 
 ./build/style/%.css: ./style/%.css
 	cp $^ $@
+
+jshint: node_modules .obj ./build/js/app.js
+	./node_modules/.bin/jshint -c .jshintrc ./.obj
 
 node_modules: package.json
 	npm update

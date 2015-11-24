@@ -428,7 +428,7 @@ function renderEditPatient() {
 
                     return m('div.visit-entry', {
                         onclick: () => { vm.selectAppointment(visit) },
-                        class: vm.selectedAppointment && vm.selectedAppointment.id == visit.id? 'selected' : ''
+                        class: vm.selectedAppointment && vm.selectedAppointment.id === visit.id? 'selected' : ''
                     }, [
                         m('div.visit-date', { class: visit.date.isAfter(now)? '' : 'past' }, [
                             m('span', visit.date.format('ddd ll')),

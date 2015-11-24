@@ -44,8 +44,8 @@ interface ViewConfig {
 }
 
 export function view(model: Model, options: ViewConfig={}) {
-    if(!options.onsave) options.onsave = () => {}
-    if(!options.ondelete) options.ondelete = () => {}
+    if(!options.onsave) { options.onsave = () => {} }
+    if(!options.ondelete) { options.ondelete = () => {} }
 
     return m('div.appointment-editor-widget', {}, [
         calendarWidget.monthWidget(model.calendar),

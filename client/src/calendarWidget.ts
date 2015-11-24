@@ -73,7 +73,7 @@ export class CalendarModel {
 
 function selectDay(model: CalendarModel, day: moment.Moment, options: ViewConfig) {
     model.selected = day
-    options.onchange && options.onchange.bind(model)(day)
+    if(options.onchange) { options.onchange.bind(model)(day) }
 }
 
 function renderMonthDay(model: CalendarModel, cursor: moment.Moment, options: ViewConfig) {
