@@ -465,7 +465,8 @@ func (a *Application) HandleMessage(w http.ResponseWriter, r *http.Request) {
 	for {
 		messageType, data, err := conn.ReadMessage()
 		if err != nil {
-			continue
+			Info.Printf("closing connection")
+			return
 		}
 
 		if messageType != websocket.TextMessage {
