@@ -95,10 +95,9 @@ export default class Connection {
         })
     }
 
-    search(query: string) {
-        return this.__send_message(['search', query]).then((results) => {
-            return SearchResults.deserialize(results)
-        })
+    async search(query: string) {
+        const results = await this.__send_message(['search', query])
+        return SearchResults.deserialize(results)
     }
 
     showUpcoming() {
@@ -192,9 +191,6 @@ export default class Connection {
             })
 
             this.pending.set(this.messageCounter, pending)
-        }).catch((e) => {
-            console.error(e)
-            throw e
         })
     }
 

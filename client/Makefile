@@ -28,7 +28,7 @@ build:
 
 ./build/js/app.js: node_modules build .obj $(SRC)
 	./node_modules/.bin/tsc --noImplicitAny --target es6 --outDir ./.obj $(SRC)
-	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify ]
+	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify --blacklist regenerator ]
 
 ./build/index.html: index.html ./build/style/main.css ./build/style/normalize.css
 	cp index.html $@

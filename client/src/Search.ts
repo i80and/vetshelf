@@ -78,20 +78,33 @@ export class ViewModel {
         return false
     }
 
-    search(query: string) {
+    async search(query: string) {
+        m.startComputation()
+
         this.selected = null
-        if(query === '') { return this.showUpcoming() }
-        if(query === 'random') { return this.showRandomClients() }
+        this.results.clear()
 
-        // Don't search unless there's been a pause
-        if(this.timeoutID >= 0) {
-            window.clearTimeout(this.timeoutID)
+        try {
+            if (query === '') {
+                await this.showUpcoming()
+            } else if (query === 'random') {
+                await this.showRandomClients()
+            }
+
+            // Don't search unless there's been a pause
+            if(this.timeoutID >= 0) {
+                window.clearTimeout(this.timeoutID)
+            }
+
+            this.timeoutID = window.setTimeout(async () => {
+                this.timeoutID = -1
+                await this.__search(query)
+            }, PAUSE_INTERVAL_MS)
+        } catch(err) {
+            console.error(err)
+        } finally {
+            m.endComputation()
         }
-
-        this.timeoutID = window.setTimeout(() => {
-            this.timeoutID = -1
-            this.__search(query)
-        }, PAUSE_INTERVAL_MS)
     }
 
     addClient() {
@@ -167,30 +180,14 @@ export class ViewModel {
     }
 
     showUpcoming() {
-        m.startComputation()
-
-        Connection.theConnection.showUpcoming().then((results) => {
+        return Connection.theConnection.showUpcoming().then((results) => {
             this.results = results
-            m.endComputation()
-        }).catch((err) => {
-            console.error(err)
-            this.results.clear()
-            m.endComputation()
-
         })
     }
 
     showRandomClients() {
-        m.startComputation()
-
-        Connection.theConnection.getRandomClients().then((results) => {
+        return Connection.theConnection.getRandomClients().then((results) => {
             this.results = results
-            m.endComputation()
-        }).catch((err) => {
-            console.error(err)
-            this.results.clear()
-            m.endComputation()
-
         })
     }
 
@@ -270,17 +267,12 @@ export class ViewModel {
         })
     }
 
-    __search(query: string) {
-        m.startComputation()
-
-        Connection.theConnection.search(query).then((results) => {
-            this.results = results
-            m.endComputation()
-        }).catch((err) => {
+    async __search(query: string) {
+        try {
+            this.results = (await Connection.theConnection.search(query))
+        } catch(err) {
             console.error(err)
-            this.results.clear()
-            m.endComputation()
-        })
+        }
     }
 }
 
