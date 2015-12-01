@@ -266,7 +266,7 @@ func (a *Application) HandleInsertPatient(args []interface{}, out *Message) {
 	}
 
 	// Make sure the given owners all own this patient
-	err = a.Connection.SetOwners(patient.ID, ownerIDs)
+	err = a.Connection.AddOwners(patient.ID, ownerIDs)
 	if err != nil {
 		Error.Printf("Error adding %v to owners of '%s': %v", ownerIDs, patient.ID, err)
 	}

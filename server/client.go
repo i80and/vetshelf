@@ -28,6 +28,8 @@ type ResponseClient struct {
 	Dirty []string `json:"dirty"`
 }
 
+// Convert a string map that comes from a JSON parser and transform it into a
+// protocol-level Client.
 func DeserializeResponseClient(data map[string]interface{}) (ret *ResponseClient, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -79,6 +81,7 @@ func DeserializeResponseClient(data map[string]interface{}) (ret *ResponseClient
 	return client, nil
 }
 
+// Convert a protocol-level Client into a database-level Client.
 func (c *ResponseClient) ToRealClient(conn *Connection) (*DatabaseClient, error) {
 	client := DatabaseClient{
 		Type:    "client",
@@ -93,6 +96,8 @@ func (c *ResponseClient) ToRealClient(conn *Connection) (*DatabaseClient, error)
 	return &client, nil
 }
 
+// Create a BSON document from a protocol-level Client structure's list of "dirty"
+// fields, mapping modified keys to updated values.
 func (c *ResponseClient) CreateUpdateDocument() bson.M {
 	changes := bson.M{}
 	for _, key := range c.Dirty {
@@ -130,6 +135,7 @@ type DatabaseClient struct {
 	Note    string       `bson:"note"`
 }
 
+// Convert a Database Client into a Protocol Client for serialization.
 func (p *DatabaseClient) ToResponse(connection *Connection) (*ResponseClient, error) {
 	response := ResponseClient{
 		Type:    "client",

@@ -21,6 +21,8 @@ type Connection struct {
 	Tasks   map[TaskName]time.Duration
 }
 
+// Connect to the given MongoDB instance, and ensure that it is properly set up
+// for this version of Vetshelf.
 func Connect(hostname string) (*Connection, error) {
 	session, err := mgo.Dial(hostname)
 	if err != nil {
@@ -45,6 +47,7 @@ func Connect(hostname string) (*Connection, error) {
 		tasks}, nil
 }
 
+// Get a list of Clients from a list of ClientID strings.
 func (c *Connection) GetClients(ids []ClientID) ([]*DatabaseClient, error) {
 	var clients []*DatabaseClient
 	err := c.DB.C("test").Find(bson.M{"_id": bson.M{"$in": ids}, "type": "client"}).
@@ -56,6 +59,7 @@ func (c *Connection) GetClients(ids []ClientID) ([]*DatabaseClient, error) {
 	return clients, nil
 }
 
+// Get a list of Patients from a list of PatientID strings.
 func (c *Connection) GetPatients(ids []PatientID) ([]*DatabasePatient, error) {
 	var patients []*DatabasePatient
 	err := c.DB.C("test").Find(bson.M{"_id": bson.M{"$in": ids}, "type": "patient"}).
@@ -67,6 +71,8 @@ func (c *Connection) GetPatients(ids []PatientID) ([]*DatabasePatient, error) {
 	return patients, nil
 }
 
+// Get a list of the Clients that own the given PatientID strings, and return
+// them in an order matching the list of pets.
 func (c *Connection) GetOwners(ids []PatientID) ([]DatabaseClient, error) {
 	var clients []DatabaseClient
 
@@ -111,6 +117,7 @@ func (c *Connection) GetOwners(ids []PatientID) ([]DatabaseClient, error) {
 	return clients, nil
 }
 
+// Get a Visit from a VisitID string.
 func (c *Connection) GetVisit(id VisitID) (*DatabaseVisit, error) {
 	var visit DatabaseVisit
 	err := c.DB.C("test").Find(bson.M{"id": id, "type": "visit"}).One(&visit)
@@ -121,6 +128,7 @@ func (c *Connection) GetVisit(id VisitID) (*DatabaseVisit, error) {
 	return &visit, nil
 }
 
+// List patients that are due for upcoming visits.
 func (c *Connection) GetUpcoming() (*SearchResults, error) {
 	var results SearchResults
 	var rows []*DatabasePatient
@@ -149,10 +157,12 @@ func (c *Connection) GetUpcoming() (*SearchResults, error) {
 	return &results, nil
 }
 
+// Search for whatever records match the given query.
 func (c *Connection) Search(query string) (*SearchResults, error) {
 	return nil, nil
 }
 
+// Insert a new Client, and throw an error if it already exists.
 func (c *Connection) InsertClient(client *DatabaseClient) error {
 	err := c.DB.C("test").Insert(client)
 	if err != nil {
@@ -162,6 +172,7 @@ func (c *Connection) InsertClient(client *DatabaseClient) error {
 	return nil
 }
 
+// Update a set of fields that have changed within the supplied protocol Client.
 func (c *Connection) UpdateClient(client *ResponseClient) error {
 	update := client.CreateUpdateDocument()
 	err := c.DB.C("test").Update(bson.M{"_id": client.ID, "type": "client"}, bson.M{"$set": update})
@@ -172,6 +183,7 @@ func (c *Connection) UpdateClient(client *ResponseClient) error {
 	return nil
 }
 
+// Insert a new Patient, and throw an error if it already exists.
 func (c *Connection) InsertPatient(patient *DatabasePatient) error {
 	err := c.DB.C("test").Insert(patient)
 	if err != nil {
@@ -181,6 +193,7 @@ func (c *Connection) InsertPatient(patient *DatabasePatient) error {
 	return nil
 }
 
+// Update a set of fields that have changed within the supplied protocol Patient.
 func (c *Connection) UpdatePatient(patient *ResponsePatient) error {
 	update := patient.CreateUpdateDocument()
 	err := c.DB.C("test").Update(bson.M{"_id": patient.ID, "type": "patient"}, bson.M{"$set": update})
@@ -191,7 +204,8 @@ func (c *Connection) UpdatePatient(patient *ResponsePatient) error {
 	return nil
 }
 
-func (c *Connection) SetOwners(p PatientID, owners []ClientID) error {
+// Specify that a list of Clients own a given Patient.
+func (c *Connection) AddOwners(p PatientID, owners []ClientID) error {
 	if len(owners) == 0 {
 		return nil
 	}
@@ -207,6 +221,7 @@ func (c *Connection) SetOwners(p PatientID, owners []ClientID) error {
 	return nil
 }
 
+// Insert a new Visit, and throw an error if it already exists.
 func (c *Connection) InsertVisit(patient PatientID, v *DatabaseVisit) error {
 	err := c.DB.C("test").Update(
 		bson.M{"_id": patient, "type": "patient"},
@@ -219,6 +234,7 @@ func (c *Connection) InsertVisit(patient PatientID, v *DatabaseVisit) error {
 	return nil
 }
 
+// Update a set of fields that have changed within the supplied protocol Visit.
 func (c *Connection) UpdateVisit(visit *ResponseVisit) error {
 	update := visit.CreateUpdateDocument("visits.$.")
 	err := c.DB.C("test").Update(
@@ -232,6 +248,7 @@ func (c *Connection) UpdateVisit(visit *ResponseVisit) error {
 	return nil
 }
 
+// Delete all records in the current database.
 func (c *Connection) Clear() error {
 	_, err := c.DB.C("test").RemoveAll(bson.M{})
 
@@ -242,6 +259,7 @@ func (c *Connection) Clear() error {
 	return nil
 }
 
+// Close the underlying MongoDB connections.
 func (c *Connection) Close() {
 	c.Session.Close()
 }

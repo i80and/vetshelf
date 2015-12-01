@@ -30,6 +30,8 @@ type ResponsePatient struct {
 	Dirty []string `json:"omitempty,dirty"`
 }
 
+// Convert a string map that comes from a JSON parser and transform it into a
+// protocol-level Patient.
 func DeserializeResponsePatient(data map[string]interface{}) (ret *ResponsePatient, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -82,6 +84,7 @@ func DeserializeResponsePatient(data map[string]interface{}) (ret *ResponsePatie
 	return patient, nil
 }
 
+// Convert a protocol-level Patient into a database-level Patient.
 func (p *ResponsePatient) ToRealPatient(conn *Connection) (*DatabasePatient, error) {
 	sex, err := VerifySex(p.Sex)
 	if err != nil {
@@ -112,6 +115,8 @@ func (p *ResponsePatient) ToRealPatient(conn *Connection) (*DatabasePatient, err
 	return &patient, nil
 }
 
+// Create a BSON document from a protocol-level Patient structure's list of "dirty"
+// fields, mapping modified keys to updated values.
 func (p *ResponsePatient) CreateUpdateDocument() bson.M {
 	changes := bson.M{}
 	for _, key := range p.Dirty {
@@ -177,7 +182,7 @@ func (p *DatabasePatient) Intact() bool {
 	return false
 }
 
-// Convert this database record into a serializable response
+// Convert a Database Patient into a Protocol Patient for serialization.
 func (p *DatabasePatient) ToResponse(connection *Connection) (*ResponsePatient, error) {
 	response := ResponsePatient{
 		Type:        "patient",

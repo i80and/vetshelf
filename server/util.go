@@ -23,6 +23,8 @@ func CastStringList(data []interface{}) ([]string, error) {
 	return dirty, err
 }
 
+// Extract a list of strings from the given key inside of data and return it.
+// If the key does not exist, returns nil.
 func ExtractStringList(data map[string]interface{}, key string) []string {
 	// If we're provided a dirty list, include it
 	switch data[key].(type) {

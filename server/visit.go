@@ -22,6 +22,8 @@ type ResponseVisit struct {
 	Dirty []string `json:"omitempty,dirty"`
 }
 
+// Convert a string map that comes from a JSON parser and transform it into a
+// protocol-level Visit.
 func DeserializeResponseVisit(data map[string]interface{}) (ret *ResponseVisit, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -46,6 +48,7 @@ func DeserializeResponseVisit(data map[string]interface{}) (ret *ResponseVisit, 
 	return visit, nil
 }
 
+// Convert a protocol-level Visit into a database-level Visit.
 func (c *ResponseVisit) ToRealVisit(conn *Connection) (*DatabaseVisit, error) {
 	// While we take dates in the same format as we store, round-trip our input
 	// through the parser to make sure it's valid.
@@ -73,6 +76,8 @@ func (c *ResponseVisit) ToRealVisit(conn *Connection) (*DatabaseVisit, error) {
 	return &visit, nil
 }
 
+// Create a BSON document from a protocol-level Visit structure's list of "dirty"
+// fields, mapping modified keys to updated values.
 func (v *ResponseVisit) CreateUpdateDocument(keyPrefix string) bson.M {
 	changes := bson.M{}
 	for _, key := range v.Dirty {
@@ -102,6 +107,7 @@ type DatabaseVisit struct {
 	Note    string     `bson:"note"`
 }
 
+// Parse the stored raw date into a usable Time object.
 func (v *DatabaseVisit) Date() (time.Time, error) {
 	date, err := time.Parse(ISOTime, v.RawDate)
 	if err != nil {
@@ -111,6 +117,7 @@ func (v *DatabaseVisit) Date() (time.Time, error) {
 	return date, nil
 }
 
+// Convert a Database Visit into a Protocol Visit for serialization.
 func (v *DatabaseVisit) ToResponse(connection *Connection) (*ResponseVisit, error) {
 	visit := ResponseVisit{
 		ID:    v.ID,
@@ -125,6 +132,7 @@ func (v *DatabaseVisit) ToResponse(connection *Connection) (*ResponseVisit, erro
 	return &visit, nil
 }
 
+// Check whether the given task was performed during this Visit.
 func (v *DatabaseVisit) HasTask(task TaskName) bool {
 	for _, curTask := range v.Tasks {
 		if curTask == task {
