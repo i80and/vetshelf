@@ -37,6 +37,10 @@ export default class SearchResults {
         }
     }
 
+    get length(): number {
+        return this.clientIDs.length
+    }
+
     client(id: string): Client {
         const client = this.clientsIndex.get(id)
         if(!client) {
@@ -126,7 +130,9 @@ export default class SearchResults {
     map<T>(f: (c: Client)=>T) {
         const result: T[] = []
         for(let id of this.clientIDs) {
-            result.push(f(this.clientsIndex.get(id)))
+            const client = this.clientsIndex.get(id)
+            if(!client) { continue }
+            result.push(f(client))
         }
 
         return result

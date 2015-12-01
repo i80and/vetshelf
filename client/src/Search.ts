@@ -79,7 +79,9 @@ export class ViewModel {
     }
 
     search(query: string) {
+        this.selected = null
         if(query === '') { return this.showUpcoming() }
+        if(query === 'random') { return this.showRandomClients() }
 
         // Don't search unless there's been a pause
         if(this.timeoutID >= 0) {
@@ -168,6 +170,20 @@ export class ViewModel {
         m.startComputation()
 
         Connection.theConnection.showUpcoming().then((results) => {
+            this.results = results
+            m.endComputation()
+        }).catch((err) => {
+            console.error(err)
+            this.results.clear()
+            m.endComputation()
+
+        })
+    }
+
+    showRandomClients() {
+        m.startComputation()
+
+        Connection.theConnection.getRandomClients().then((results) => {
             this.results = results
             m.endComputation()
         }).catch((err) => {

@@ -107,6 +107,12 @@ export default class Connection {
         })
     }
 
+    getRandomClients() {
+        return this.__send_message(['show-random']).then((results) => {
+            return SearchResults.deserialize(results)
+        })
+    }
+
     getClients(ids: string[]) {
         return this.__send_message(['get-clients', ids]).then((results: {}[]) => {
             return results.map((raw) => Client.deserialize(raw))

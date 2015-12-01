@@ -157,6 +157,23 @@ func (c *Connection) GetUpcoming() (*SearchResults, error) {
 	return &results, nil
 }
 
+// Sample an arbitrary selection of clients
+func (c *Connection) GetRandomClients(n int) (*SearchResults, error) {
+	var results SearchResults
+	var rows []DatabaseClient
+
+	err := c.DB.C("test").Find(bson.M{"type": "client"}).
+		Limit(n).
+		Sort("name").
+		All(&rows)
+	if err != nil {
+		return nil, err
+	}
+
+	results.Clients = rows
+	return &results, nil
+}
+
 // Search for whatever records match the given query.
 func (c *Connection) Search(query string) (*SearchResults, error) {
 	return nil, nil

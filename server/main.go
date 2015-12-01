@@ -132,6 +132,33 @@ func (a *Application) HandleShowUpcoming(args []interface{}, out *Message) {
 	out.Message = &results
 }
 
+func (a *Application) HandleShowRandom(args []interface{}, out *Message) {
+	sample, err := a.Connection.GetRandomClients(100)
+	if err != nil {
+		Error.Printf("%v", err)
+		return
+	}
+
+	results := NewResults()
+
+	for _, client := range sample.Clients {
+		response, err := client.ToResponse(a.Connection)
+		if err != nil {
+			Error.Printf("Error converting client %s to response: %v", client.ID, err)
+			continue
+		}
+
+		results.Clients = append(results.Clients, response)
+	}
+
+	err = results.LoadPatients(a.Connection)
+	if err != nil {
+		Error.Printf("Error loading patients: %v", err)
+	}
+
+	out.Message = &results
+}
+
 func (a *Application) HandleGetClients(args []interface{}, out *Message) {
 	if len(args) == 0 {
 		Error.Printf("No clients requested")
@@ -474,6 +501,8 @@ func (a *Application) DispatchMethod(args []interface{}, out *Message) {
 		a.HandleSearch(args, out)
 	case "show-upcoming":
 		a.HandleShowUpcoming(args, out)
+	case "show-random":
+		a.HandleShowRandom(args, out)
 	case "get-clients":
 		a.HandleGetClients(args, out)
 	case "get-patients":
