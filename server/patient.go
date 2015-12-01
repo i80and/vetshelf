@@ -154,7 +154,7 @@ type DatabasePatient struct {
 	RawSex      Sex              `bson:"sex"`
 	Species     string           `bson:"species"`
 	Breed       string           `bson:"breed"`
-	Description string           `bson:"desc"`
+	Description string           `bson:"description"`
 	Active      bool             `bson:"active"`
 	Visits      []*DatabaseVisit `bson:"visits"`
 	Note        string           `bson:"note"`

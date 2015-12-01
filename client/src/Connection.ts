@@ -9,7 +9,7 @@ const TIMEOUT_INTERVAL = 5000
 function genID() {
     const buf = new Uint32Array(8)
     const str: string[] = []
-    self.crypto.getRandomValues(buf)
+    crypto.getRandomValues(buf)
     for(let i = 0; i < buf.length; i += 2) {
         str.push(buf[i].toString(16))
     }

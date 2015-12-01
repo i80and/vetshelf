@@ -93,7 +93,7 @@ export class ViewModel {
     }
 
     addClient() {
-        const client = new Client(null, {})
+        const client = Client.emptyClient()
 
         m.startComputation()
         this.results.updateClient(client).then((id: string) => {

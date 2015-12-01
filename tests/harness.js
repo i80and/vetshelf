@@ -5,10 +5,12 @@ const fs = require('fs')
 const process = require('process')
 const path = require('path')
 const crypto = require('crypto')
+const moment = require('moment')
 const Connection = require('../client/.obj/Connection.js')
 
 // Shims to simulate a browser-like environment
 global.WebSocket = require('ws')
+global.moment = moment
 global.crypto = crypto
 global.crypto.getRandomValues = function(buf) {
     const rnd = crypto.randomBytes(buf.byteLength)

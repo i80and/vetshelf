@@ -128,4 +128,8 @@ export default class Client {
 
         return new Client(data.id, data)
     }
+
+    static emptyClient(): Client {
+        return new Client(null, {})
+    }
 }

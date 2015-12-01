@@ -18,21 +18,21 @@ export async function test(connection) {
         await connection.clear()
 
         Connection.prototype.genID = () => { return 'c' }
-        await connection.saveClient(new Client(null, {}))
+        await connection.saveClient(Client.emptyClient())
 
         Connection.prototype.genID = () => { return 'p' }
-        await connection.savePatient(new Patient(null, {}))
+        await connection.savePatient(Patient.emptyPatient())
 
         try {
             Connection.prototype.genID = () => { return 'c' }
-            await connection.saveClient(new Client(null, {}))
+            await connection.saveClient(Client.emptyClient())
         } catch(err) {
             caught += 1
         }
 
         try {
             Connection.prototype.genID = () => { return 'p' }
-            await connection.savePatient(new Patient(null, {}))
+            await connection.savePatient(Patient.emptyPatient())
         } catch(err) {
             caught += 1
         }

@@ -25,6 +25,5 @@
     "devel": true,
     "esnext": true,
 
-    "globals": {"m": false, "moment": false, "self": true}
+    "globals": {"m": false, "moment": false, "crypto": false}
 }
-
