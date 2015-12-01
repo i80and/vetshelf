@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 const ISOTime = time.RFC3339
@@ -16,6 +18,8 @@ type ResponseVisit struct {
 	Date  string   `json:"date"`
 	Tasks []string `json:"tasks"`
 	Note  string   `json:"note"`
+
+	Dirty []string `json:"omitempty,dirty"`
 }
 
 func DeserializeResponseVisit(data map[string]interface{}) (ret *ResponseVisit, err error) {
@@ -35,6 +39,9 @@ func DeserializeResponseVisit(data map[string]interface{}) (ret *ResponseVisit, 
 	for _, task := range data["tasks"].([]interface{}) {
 		visit.Tasks = append(visit.Tasks, task.(string))
 	}
+
+	// If we're provided a dirty list, include it
+	visit.Dirty = ExtractStringList(data, "dirty")
 
 	return visit, nil
 }
@@ -64,6 +71,28 @@ func (c *ResponseVisit) ToRealVisit(conn *Connection) (*DatabaseVisit, error) {
 	}
 
 	return &visit, nil
+}
+
+func (v *ResponseVisit) CreateUpdateDocument(keyPrefix string) bson.M {
+	changes := bson.M{}
+	for _, key := range v.Dirty {
+		var update interface{}
+		switch key {
+		case "date":
+			update = v.Date
+		case "tasks":
+			update = v.Tasks
+		case "note":
+			update = v.Note
+		default:
+			Warning.Printf(fmt.Sprintf("Attempt to update unknown visit field %s", key))
+			continue
+		}
+
+		changes[keyPrefix+key] = update
+	}
+
+	return changes
 }
 
 type DatabaseVisit struct {

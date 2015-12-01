@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type PatientID string
@@ -25,6 +26,8 @@ type ResponsePatient struct {
 
 	// Informational fields that will be ignored if provided by a client
 	Due map[TaskName]string `json:"due"`
+
+	Dirty []string `json:"omitempty,dirty"`
 }
 
 func DeserializeResponsePatient(data map[string]interface{}) (ret *ResponsePatient, err error) {
@@ -67,28 +70,37 @@ func DeserializeResponsePatient(data map[string]interface{}) (ret *ResponsePatie
 		}
 	}
 
+	// Validate the given Sex
+	_, err = VerifySex(patient.Sex)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Attempt to update patient with illegal sex \"%s\"", patient.Sex))
+	}
+
+	// If we're provided a dirty list, include it
+	patient.Dirty = ExtractStringList(data, "dirty")
+
 	return patient, nil
 }
 
-func (c *ResponsePatient) ToRealPatient(conn *Connection) (*DatabasePatient, error) {
-	sex, err := VerifySex(c.Sex)
+func (p *ResponsePatient) ToRealPatient(conn *Connection) (*DatabasePatient, error) {
+	sex, err := VerifySex(p.Sex)
 	if err != nil {
 		return nil, err
 	}
 
 	patient := DatabasePatient{
 		Type:        "patient",
-		ID:          c.ID,
-		Name:        c.Name,
+		ID:          p.ID,
+		Name:        p.Name,
 		RawSex:      sex,
-		Species:     c.Species,
-		Breed:       c.Breed,
-		Description: c.Description,
-		Active:      c.Active,
+		Species:     p.Species,
+		Breed:       p.Breed,
+		Description: p.Description,
+		Active:      p.Active,
 		Visits:      []*DatabaseVisit{},
-		Note:        c.Note}
+		Note:        p.Note}
 
-	for _, rawVisit := range c.Visits {
+	for _, rawVisit := range p.Visits {
 		realVisit, err := rawVisit.ToRealVisit(conn)
 		if err != nil {
 			return nil, err
@@ -98,6 +110,36 @@ func (c *ResponsePatient) ToRealPatient(conn *Connection) (*DatabasePatient, err
 	}
 
 	return &patient, nil
+}
+
+func (p *ResponsePatient) CreateUpdateDocument() bson.M {
+	changes := bson.M{}
+	for _, key := range p.Dirty {
+		var update interface{}
+		switch key {
+		case "name":
+			update = p.Name
+		case "sex":
+			update = p.Sex
+		case "species":
+			update = p.Species
+		case "breed":
+			update = p.Breed
+		case "description":
+			update = p.Description
+		case "active":
+			update = p.Active
+		case "note":
+			update = p.Note
+		default:
+			Warning.Printf(fmt.Sprintf("Attempt to update unknown patient field %s", key))
+			continue
+		}
+
+		changes[key] = update
+	}
+
+	return changes
 }
 
 type DatabasePatient struct {

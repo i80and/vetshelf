@@ -120,23 +120,26 @@ export default class Connection {
     }
 
     /// Save a patient to the database, generating a new ID if it isn't already
-    /// set. Specifies a list of client IDs for whom to add this patient as a pet.
+    /// set. When inserting, specifies a list of client IDs for whom to add
+    /// this patient as a pet.
     savePatient(patient: Patient, clientIDs: string[]=[]) {
         const newDoc = patient.id === undefined || patient.id === null
         if(newDoc) {
             patient.id = this.genID()
+            return this.__send_message(['insert-patient', patient.serialize(), clientIDs])
         }
 
-        return this.__send_message(['save-patient', patient.serialize(), clientIDs, newDoc])
+        return this.__send_message(['update-patient', patient.serialize()])
     }
 
     saveClient(client: Client) {
         const newDoc = client.id === undefined || client.id === null
         if(newDoc) {
             client.id = this.genID()
+            return this.__send_message(['insert-client', client.serialize()])
         }
 
-        return this.__send_message(['save-client', client.serialize(), newDoc])
+        return this.__send_message(['update-client', client.serialize()])
     }
 
     saveVisit(patientID: string, visit: Visit) {

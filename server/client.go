@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 type ClientID string
@@ -21,7 +23,9 @@ type ResponseClient struct {
 	Email   string      `json:"email"`
 	Address string      `json:"address"`
 	Pets    []PatientID `json:"pets"`
-	Note    string      `json:"note"`
+	Note    string      `json:"note,omitempty"`
+
+	Dirty []string `json:"dirty"`
 }
 
 func DeserializeResponseClient(data map[string]interface{}) (ret *ResponseClient, err error) {
@@ -70,6 +74,8 @@ func DeserializeResponseClient(data map[string]interface{}) (ret *ResponseClient
 		}
 	}
 
+	client.Dirty = ExtractStringList(data, "dirty")
+
 	return client, nil
 }
 
@@ -85,6 +91,32 @@ func (c *ResponseClient) ToRealClient(conn *Connection) (*DatabaseClient, error)
 		Note:    c.Note}
 
 	return &client, nil
+}
+
+func (c *ResponseClient) CreateUpdateDocument() bson.M {
+	changes := bson.M{}
+	for _, key := range c.Dirty {
+		var update interface{}
+		switch key {
+		case "name":
+			update = c.Name
+		case "phone":
+			update = c.Phone
+		case "email":
+			update = c.Email
+		case "address":
+			update = c.Address
+		case "note":
+			update = c.Note
+		default:
+			Warning.Printf(fmt.Sprintf("Attempt to update unknown client field %s", key))
+			continue
+		}
+
+		changes[key] = update
+	}
+
+	return changes
 }
 
 type DatabaseClient struct {

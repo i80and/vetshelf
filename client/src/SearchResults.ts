@@ -72,6 +72,7 @@ export default class SearchResults {
         if(!patientID) { throw util.valueError.error(`Couldn't find patient for visit ${visit.id}`) }
 
         return Connection.theConnection.saveVisit(patientID, visit).then(() => {
+            visit.clearDirty()
             this.visits.set(visit.id, visit)
 
             // An updated visit means the patient due dates might change.
@@ -84,6 +85,7 @@ export default class SearchResults {
 
     updateClient(client: Client) {
         return Connection.theConnection.saveClient(client).then(() => {
+            client.clearDirty()
             if(!this.clientsIndex.has(client.id)) {
                 // New client; put it at the top of the clients list
                 this.clientIDs.splice(0, 0, client.id)
@@ -97,6 +99,7 @@ export default class SearchResults {
     updatePatient(patient: Patient, options?: { addOwners: string[] }) {
         const toAdd = (options && options.addOwners)? options.addOwners : []
         return Connection.theConnection.savePatient(patient, toAdd).then(() => {
+            patient.clearDirty()
             this.patients.set(patient.id, patient)
             return this.refreshClients(toAdd)
         }).then(() => {

@@ -31,9 +31,9 @@ export class ViewModel {
         this.showUpcoming()
     }
 
-    get dirty() {
+    get isDirty() {
         if(!this.selected) { return false }
-        return this.selected.dirty
+        return this.selected.isDirty
     }
 
     get selected(): Client | Patient {
@@ -130,7 +130,7 @@ export class ViewModel {
     }
 
     save() {
-        if(!this.dirty) { return }
+        if(!this.isDirty) { return }
 
         m.startComputation()
         new Promise((resolve) => {
@@ -145,13 +145,12 @@ export class ViewModel {
             console.error(msg)
             m.endComputation()
         }).then(() => {
-            this.selected.dirty = false
             m.endComputation()
         })
     }
 
     revert() {
-        if(this.dirty) {
+        if(this.isDirty) {
             if (!window.confirm('Are you sure you want to revert your working changes?')) {
                 return
             }
@@ -314,7 +313,7 @@ function renderCommonToolbarEntries() {
     return [
         m('div.small-button', {
             title: 'Save',
-            class: vm.dirty? '' : 'inactive',
+            class: vm.isDirty? '' : 'inactive',
             onclick: () => vm.save() }, m('span.fa.fa-save')),
         m('div.small-button', {
             title: 'Revert',

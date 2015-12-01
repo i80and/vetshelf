@@ -10,7 +10,7 @@ export default class Client {
     _pets: Set<string>
     _note: string
 
-    dirty: boolean
+    private dirty: Set<string>
 
     constructor(id: string, options: any) {
         this._id = id
@@ -27,41 +27,43 @@ export default class Client {
             }
         }
 
-        this.dirty = false
+        this.dirty = new Set<string>()
 
         Object.seal(this)
     }
+
+    get isDirty(): boolean { return this.dirty.size > 0 }
 
     get id() { return this._id }
     set id(val) { this._id = val }
 
     get name() { return this._name }
     set name(val) {
-        this.dirty = true;
+        this.dirty.add('name')
         this._name = val
     }
 
     get address() { return this._address }
     set address(val) {
-        this.dirty = true;
+        this.dirty.add('address')
         this._address = val
     }
 
     get email() { return this._email }
     set email(val) {
-        this.dirty = true;
+        this.dirty.add('email')
         this._email = val
     }
 
     get phone() { return [...this._phone] }
 
     addPhone(phoneInfo: PhoneInfo) {
-        this.dirty = true
+        this.dirty.add('phone')
         this._phone.push(phoneInfo)
     }
 
     updatePhone(oldPhone: PhoneInfo, newPhone: PhoneInfo) {
-        this.dirty = true
+        this.dirty.add('phone')
         this._phone = this._phone.map((p) => {
             if(p === oldPhone) {
                 return newPhone
@@ -72,29 +74,33 @@ export default class Client {
     }
 
     removePhone(phoneInfo: PhoneInfo) {
-        this.dirty = true
+        this.dirty.add('phone')
         this._phone = this._phone.filter((p) => p !== phoneInfo)
     }
 
     get note() { return this._note }
     set note(val) {
-        this.dirty = true;
+        this.dirty.add('note')
         this._note = val
     }
 
     get pets() { return [...this._pets.values()] }
 
     addPet(petID: string) {
-        this.dirty = true
+        this.dirty.add('_pets')
         this._pets.add(petID)
     }
 
     removePet(petID: string) {
-        this.dirty = true
+        this.dirty.add('_pets')
         this._pets.delete(petID)
     }
 
     hasPet(petID: string) { return this._pets.has(petID) }
+
+    clearDirty(): void {
+        this.dirty.clear()
+    }
 
     serialize() {
         return {
@@ -105,7 +111,10 @@ export default class Client {
             email: this.email,
             phone: this.phone.map((p) => p.serialize()),
             pets: this.pets,
-            note: this.note
+            note: this.note,
+
+            // Filter out dirty fields that are for our own use
+            dirty: Array.from(this.dirty).filter((x) => x[0] !== '_')
         }
     }
 

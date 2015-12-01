@@ -4,7 +4,7 @@ import * as util from './util'
 import Visit from './Visit'
 
 export default class Patient {
-    _id: string
+    id: string
     _name: string
     _sex: string
     _species: string
@@ -15,10 +15,10 @@ export default class Patient {
     _due: Map<string, moment.Moment>
 
     visits: Visit[]
-    dirty: boolean
+    private dirty: Set<string>
 
     constructor(id: string, options: any) {
-        this._id = id
+        this.id = id
         this._name = options.name || '(unnamed)'
         this._sex = options.sex || '?+'
         this._species = options.species || ''
@@ -34,47 +34,46 @@ export default class Patient {
         }
 
         this.visits = options.visits || []
-        this.dirty = false
+        this.dirty = new Set<string>()
 
         Object.seal(this)
     }
 
-    get id() { return this._id }
-    set id(val) { this._id = val }
+    get isDirty(): boolean { return this.dirty.size > 0 }
 
     get name() { return this._name }
     set name(val) {
-        this.dirty = true
+        this.dirty.add('name')
         this._name = val
     }
 
     get breed() { return this._breed }
     set breed(val) {
-        this.dirty = true
+        this.dirty.add('breed')
         this._breed = val
     }
 
     get species() { return this._species }
     set species(val) {
-        this.dirty = true
+        this.dirty.add('species')
         this._species = val
     }
 
     get description() { return this._description }
     set description(val) {
-        this.dirty = true
+        this.dirty.add('description')
         this._description = val
     }
 
     get note() { return this._note }
     set note(val) {
-        this.dirty = true
+        this.dirty.add('note')
         this._note = val
     }
 
     get active() { return this._active }
     set active(val) {
-        this.dirty = true
+        this.dirty.add('active')
         this._active = val
     }
 
@@ -84,13 +83,13 @@ export default class Patient {
             throw util.valueError.error(`Invalid sex string: ${val}`)
         }
 
-        this.dirty = true
+        this.dirty.add('sex')
         this._sex = `${val}${this._sex[1]}`
     }
 
     get intact() { return this._sex[1] === '+' }
     set intact(val) {
-        this.dirty = true
+        this.dirty.add('sex')
         const newVal = val? '+' : '-'
         this._sex = `${this.sex}${newVal}`
     }
@@ -111,6 +110,10 @@ export default class Patient {
         }).sort((a, b) => a[0].unix() - b[0].unix())
     }
 
+    clearDirty(): void {
+        this.dirty.clear()
+    }
+
     serialize() {
         return {
             type: 'patient',
@@ -123,7 +126,8 @@ export default class Patient {
             note: this.note,
             active: this.active,
 
-            visits: this.visits
+            visits: this.visits,
+            dirty: Array.from(this.dirty)
         }
     }
 

@@ -214,9 +214,9 @@ func (a *Application) HandleGetPatients(args []interface{}, out *Message) {
 	out.Message = responsePatients
 }
 
-func (a *Application) HandleSavePatient(args []interface{}, out *Message) {
-	if len(args) < 3 {
-		Error.Printf("Insufficient arguments to save-patient")
+func (a *Application) HandleInsertPatient(args []interface{}, out *Message) {
+	if len(args) < 2 {
+		Error.Printf("Insufficient arguments to insert-patient")
 		return
 	}
 
@@ -253,22 +253,13 @@ func (a *Application) HandleSavePatient(args []interface{}, out *Message) {
 		return
 	}
 
-	var isNewPatient bool
-	switch args[2].(type) {
-	case bool:
-		isNewPatient = args[2].(bool)
-	default:
-		Error.Printf("Bad argument: %v", args[2])
-		return
-	}
-
 	patient, err := rawPatient.ToRealPatient(a.Connection)
 	if err != nil {
 		Error.Printf("Error actualizing patient: %v", err)
 		return
 	}
 
-	err = a.Connection.SavePatient(patient, isNewPatient)
+	err = a.Connection.InsertPatient(patient)
 	if err != nil {
 		Error.Printf("Error saving patient %s: %v", patient.ID, err)
 		return
@@ -283,9 +274,40 @@ func (a *Application) HandleSavePatient(args []interface{}, out *Message) {
 	out.Message = patient.ID
 }
 
-func (a *Application) HandleSaveClient(args []interface{}, out *Message) {
+func (a *Application) HandleUpdatePatient(args []interface{}, out *Message) {
+	if len(args) < 1 {
+		Error.Printf("Insufficient arguments to update-patient")
+		return
+	}
+
+	var rawPatient *ResponsePatient
+	switch args[0].(type) {
+	case map[string]interface{}:
+		var err error
+		rawPatient, err = DeserializeResponsePatient(args[0].(map[string]interface{}))
+		if err != nil {
+			Error.Printf("Error deserializing patient: %v", err)
+			return
+		}
+	}
+
+	if rawPatient == nil {
+		Error.Printf("Bad argument: %v", args[0])
+		return
+	}
+
+	err := a.Connection.UpdatePatient(rawPatient)
+	if err != nil {
+		Error.Printf("Error saving patient %s: %v", rawPatient.ID, err)
+		return
+	}
+
+	out.Message = rawPatient.ID
+}
+
+func (a *Application) HandleInsertClient(args []interface{}, out *Message) {
 	if len(args) < 2 {
-		Error.Printf("Insufficient arguments to save-client")
+		Error.Printf("Insufficient arguments to insert-client")
 		return
 	}
 
@@ -305,28 +327,50 @@ func (a *Application) HandleSaveClient(args []interface{}, out *Message) {
 		return
 	}
 
-	var isNewClient bool
-	switch args[1].(type) {
-	case bool:
-		isNewClient = args[1].(bool)
-	default:
-		Error.Printf("Bad argument: %v", args[1])
-		return
-	}
-
 	client, err := rawClient.ToRealClient(a.Connection)
 	if err != nil {
 		Error.Printf("Error actualizing client: %v", err)
 		return
 	}
 
-	err = a.Connection.SaveClient(client, isNewClient)
+	err = a.Connection.InsertClient(client)
 	if err != nil {
 		Error.Printf("Error saving client %s: %v", client.ID, err)
 		return
 	}
 
 	out.Message = client.ID
+}
+
+func (a *Application) HandleUpdateClient(args []interface{}, out *Message) {
+	if len(args) < 1 {
+		Error.Printf("Insufficient arguments to update-client")
+		return
+	}
+
+	var rawClient *ResponseClient
+	switch args[0].(type) {
+	case map[string]interface{}:
+		var err error
+		rawClient, err = DeserializeResponseClient(args[0].(map[string]interface{}))
+		if err != nil {
+			Error.Printf("Error deserializing client: %v", err)
+			return
+		}
+	}
+
+	if rawClient == nil {
+		Error.Printf("Bad argument: %v", args[0])
+		return
+	}
+
+	err := a.Connection.UpdateClient(rawClient)
+	if err != nil {
+		Error.Printf("Error saving client %s: %v", rawClient.ID, err)
+		return
+	}
+
+	out.Message = rawClient.ID
 }
 
 func (a *Application) HandleInsertVisit(args []interface{}, out *Message) {
@@ -384,19 +428,13 @@ func (a *Application) HandleUpdateVisit(args []interface{}, out *Message) {
 		}
 	}
 
-	visit, err := rawVisit.ToRealVisit(a.Connection)
+	err := a.Connection.UpdateVisit(rawVisit)
 	if err != nil {
-		Error.Printf("Error actualizing visit: %v", err)
+		Error.Printf("Error updating visit %s: %v", rawVisit.ID, err)
 		return
 	}
 
-	err = a.Connection.UpdateVisit(visit)
-	if err != nil {
-		Error.Printf("Error updating visit %s: %v", visit.ID, err)
-		return
-	}
-
-	out.Message = visit.ID
+	out.Message = rawVisit.ID
 }
 
 // Handle an attempt to clear the current clinic's database. Only valid in
@@ -440,10 +478,14 @@ func (a *Application) DispatchMethod(args []interface{}, out *Message) {
 		a.HandleGetClients(args, out)
 	case "get-patients":
 		a.HandleGetPatients(args, out)
-	case "save-patient":
-		a.HandleSavePatient(args, out)
-	case "save-client":
-		a.HandleSaveClient(args, out)
+	case "insert-patient":
+		a.HandleInsertPatient(args, out)
+	case "update-patient":
+		a.HandleUpdatePatient(args, out)
+	case "insert-client":
+		a.HandleInsertClient(args, out)
+	case "update-client":
+		a.HandleUpdateClient(args, out)
 	case "insert-visit":
 		a.HandleInsertVisit(args, out)
 	case "update-visit":

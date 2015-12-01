@@ -153,17 +153,8 @@ func (c *Connection) Search(query string) (*SearchResults, error) {
 	return nil, nil
 }
 
-func (c *Connection) SaveClient(client *DatabaseClient, isNewClient bool) error {
-	if isNewClient {
-		err := c.DB.C("test").Insert(client)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	err := c.DB.C("test").Update(bson.M{"_id": client.ID, "type": "client"}, client)
+func (c *Connection) InsertClient(client *DatabaseClient) error {
+	err := c.DB.C("test").Insert(client)
 	if err != nil {
 		return err
 	}
@@ -171,17 +162,28 @@ func (c *Connection) SaveClient(client *DatabaseClient, isNewClient bool) error 
 	return nil
 }
 
-func (c *Connection) SavePatient(patient *DatabasePatient, isNewPatient bool) error {
-	if isNewPatient {
-		err := c.DB.C("test").Insert(patient)
-		if err != nil {
-			return err
-		}
-
-		return nil
+func (c *Connection) UpdateClient(client *ResponseClient) error {
+	update := client.CreateUpdateDocument()
+	err := c.DB.C("test").Update(bson.M{"_id": client.ID, "type": "client"}, bson.M{"$set": update})
+	if err != nil {
+		return err
 	}
 
-	err := c.DB.C("test").Update(bson.M{"_id": patient.ID, "type": "patient"}, patient)
+	return nil
+}
+
+func (c *Connection) InsertPatient(patient *DatabasePatient) error {
+	err := c.DB.C("test").Insert(patient)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Connection) UpdatePatient(patient *ResponsePatient) error {
+	update := patient.CreateUpdateDocument()
+	err := c.DB.C("test").Update(bson.M{"_id": patient.ID, "type": "patient"}, bson.M{"$set": update})
 	if err != nil {
 		return err
 	}
@@ -217,10 +219,11 @@ func (c *Connection) InsertVisit(patient PatientID, v *DatabaseVisit) error {
 	return nil
 }
 
-func (c *Connection) UpdateVisit(v *DatabaseVisit) error {
+func (c *Connection) UpdateVisit(visit *ResponseVisit) error {
+	update := visit.CreateUpdateDocument("visits.$.")
 	err := c.DB.C("test").Update(
-		bson.M{"visits.id": v.ID, "type": "patient"},
-		bson.M{"$set": bson.M{"visits.$": v}})
+		bson.M{"visits.id": visit.ID, "type": "patient"},
+		bson.M{"$set": update})
 
 	if err != nil {
 		return err
