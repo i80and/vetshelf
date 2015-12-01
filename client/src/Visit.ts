@@ -1,7 +1,5 @@
 /// <reference path="typings/moment/moment.d.ts" />
 
-import * as util from './util'
-
 export default class Visit {
     id: string
     date: moment.Moment

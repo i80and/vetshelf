@@ -340,6 +340,11 @@ function renderEditClient() {
                 placeholder: 'Address',
                 value: vm.selectedClient.address,
                 oninput: function() { vm.selectedClient.address = this.value } }),
+            m('input', {
+                placeholder: 'Email Address',
+                value: vm.selectedClient.email,
+                oninput: function() { vm.selectedClient.email = this.value }
+            }),
             m('textarea', {
                 placeholder: 'Notes',
                 rows: 5,

@@ -1,7 +1,8 @@
 import Client from './Client'
+import PhoneInfo from './PhoneInfo'
 import Patient from './Patient'
-import Visit from './Visit'
 import SearchResults from'./SearchResults'
+import Visit from './Visit'
 
 const TIMEOUT_INTERVAL = 5000
 

@@ -4,16 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-
-	"gopkg.in/mgo.v2"
 )
 
 type ClientID string
+
+type PhoneInfo struct {
+	Number string `json:"number",bson:"number"`
+	Note   string `json:"note",bson:"note"`
+}
 
 type ResponseClient struct {
 	Type    string      `json:"type"`
 	ID      ClientID    `json:"id"`
 	Name    string      `json:"name"`
+	Phone   []PhoneInfo `json:"phone"`
+	Email   string      `json:"email"`
 	Address string      `json:"address"`
 	Pets    []PatientID `json:"pets"`
 	Note    string      `json:"note"`
@@ -36,7 +41,9 @@ func DeserializeResponseClient(data map[string]interface{}) (ret *ResponseClient
 		Type:    t,
 		ID:      ClientID(data["id"].(string)),
 		Name:    data["name"].(string),
+		Phone:   []PhoneInfo{},
 		Address: data["address"].(string),
+		Email:   data["email"].(string),
 		Pets:    []PatientID{},
 		Note:    data["note"].(string)}
 
@@ -49,6 +56,20 @@ func DeserializeResponseClient(data map[string]interface{}) (ret *ResponseClient
 		}
 	}
 
+	for _, rawPhone := range data["phone"].([]interface{}) {
+		switch rawPhone.(type) {
+		case map[string]interface{}:
+			phoneMap := rawPhone.(map[string]interface{})
+			phone := PhoneInfo{
+				Number: phoneMap["number"].(string),
+				Note:   phoneMap["note"].(string),
+			}
+			client.Phone = append(client.Phone, phone)
+		default:
+			return nil, errors.New(fmt.Sprintf("Incorrect phone info: %v", rawPhone))
+		}
+	}
+
 	return client, nil
 }
 
@@ -57,6 +78,8 @@ func (c *ResponseClient) ToRealClient(conn *Connection) (*DatabaseClient, error)
 		Type:    "client",
 		ID:      c.ID,
 		Name:    c.Name,
+		Phone:   c.Phone,
+		Email:   c.Email,
 		Address: c.Address,
 		Pets:    c.Pets,
 		Note:    c.Note}
@@ -68,13 +91,11 @@ type DatabaseClient struct {
 	ID      ClientID     `bson:"_id"`
 	Type    DocumentType `bson:"type"`
 	Name    string       `bson:"name"`
+	Phone   []PhoneInfo  `bson:"phone"`
+	Email   string       `bson:"email"`
 	Address string       `bson:"address"`
 	Pets    []PatientID  `bson:"pets"`
 	Note    string       `bson:"note"`
-}
-
-func (p *DatabaseClient) Save(collection *mgo.Collection) error {
-	return nil
 }
 
 func (p *DatabaseClient) ToResponse(connection *Connection) (*ResponseClient, error) {
@@ -82,6 +103,8 @@ func (p *DatabaseClient) ToResponse(connection *Connection) (*ResponseClient, er
 		Type:    "client",
 		ID:      p.ID,
 		Name:    p.Name,
+		Phone:   p.Phone,
+		Email:   p.Email,
 		Address: p.Address,
 		Pets:    p.Pets,
 		Note:    p.Note}

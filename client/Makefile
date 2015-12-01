@@ -4,6 +4,7 @@ SRC=./src/app.ts \
 	./src/appointmentEditor.ts \
     ./src/calendarWidget.ts \
     ./src/Client.ts \
+    ./src/PhoneInfo.ts \
     ./src/Connection.ts \
     ./src/Login.ts \
     ./src/optionsWidget.ts \
