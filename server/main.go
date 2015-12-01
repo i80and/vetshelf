@@ -306,7 +306,7 @@ func (a *Application) HandleUpdatePatient(args []interface{}, out *Message) {
 }
 
 func (a *Application) HandleInsertClient(args []interface{}, out *Message) {
-	if len(args) < 2 {
+	if len(args) < 1 {
 		Error.Printf("Insufficient arguments to insert-client")
 		return
 	}
