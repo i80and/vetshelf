@@ -14,10 +14,11 @@ const ISOTime = time.RFC3339
 type VisitID string
 
 type ResponseVisit struct {
-	ID    VisitID  `json:"id"`
-	Date  string   `json:"date"`
-	Tasks []string `json:"tasks"`
-	Note  string   `json:"note"`
+	ID       VisitID  `json:"id"`
+	Date     string   `json:"date"`
+	Tasks    []string `json:"tasks"`
+	WeightKg float64  `json:"kg"`
+	Note     string   `json:"note"`
 
 	Dirty []string `json:"omitempty,dirty"`
 }
@@ -33,10 +34,11 @@ func DeserializeResponseVisit(data map[string]interface{}) (ret *ResponseVisit, 
 	}()
 
 	visit := &ResponseVisit{
-		ID:    VisitID(data["id"].(string)),
-		Date:  data["date"].(string),
-		Tasks: []string{},
-		Note:  data["note"].(string)}
+		ID:       VisitID(data["id"].(string)),
+		Date:     data["date"].(string),
+		Tasks:    []string{},
+		WeightKg: data["kg"].(float64),
+		Note:     data["note"].(string)}
 
 	for _, task := range data["tasks"].([]interface{}) {
 		visit.Tasks = append(visit.Tasks, task.(string))
@@ -64,10 +66,11 @@ func (c *ResponseVisit) ToRealVisit(conn *Connection) (*DatabaseVisit, error) {
 	sort.Strings(c.Tasks)
 
 	visit := DatabaseVisit{
-		ID:      c.ID,
-		RawDate: date.Format(ISOTime),
-		Tasks:   []TaskName{},
-		Note:    c.Note}
+		ID:       c.ID,
+		RawDate:  date.Format(ISOTime),
+		Tasks:    []TaskName{},
+		WeightKg: c.WeightKg,
+		Note:     c.Note}
 
 	for _, task := range c.Tasks {
 		visit.Tasks = append(visit.Tasks, TaskName(task))
@@ -87,6 +90,8 @@ func (v *ResponseVisit) CreateUpdateDocument(keyPrefix string) bson.M {
 			update = v.Date
 		case "tasks":
 			update = v.Tasks
+		case "kg":
+			update = v.WeightKg
 		case "note":
 			update = v.Note
 		default:
@@ -101,10 +106,11 @@ func (v *ResponseVisit) CreateUpdateDocument(keyPrefix string) bson.M {
 }
 
 type DatabaseVisit struct {
-	ID      VisitID    `bson:"id"`
-	RawDate string     `bson:"date"`
-	Tasks   []TaskName `bson:"tasks"` // MUST be sorted!
-	Note    string     `bson:"note"`
+	ID       VisitID    `bson:"id"`
+	RawDate  string     `bson:"date"`
+	Tasks    []TaskName `bson:"tasks"` // MUST be sorted!
+	WeightKg float64    `bson:"kg"`
+	Note     string     `bson:"note"`
 }
 
 // Parse the stored raw date into a usable Time object.
@@ -120,10 +126,11 @@ func (v *DatabaseVisit) Date() (time.Time, error) {
 // Convert a Database Visit into a Protocol Visit for serialization.
 func (v *DatabaseVisit) ToResponse(connection *Connection) (*ResponseVisit, error) {
 	visit := ResponseVisit{
-		ID:    v.ID,
-		Date:  v.RawDate,
-		Tasks: []string{},
-		Note:  v.Note}
+		ID:       v.ID,
+		Date:     v.RawDate,
+		Tasks:    []string{},
+		WeightKg: v.WeightKg,
+		Note:     v.Note}
 
 	for _, task := range v.Tasks {
 		visit.Tasks = append(visit.Tasks, string(task))

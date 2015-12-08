@@ -4,15 +4,16 @@ export default class Visit {
     id: string
     _date: moment.Moment
     _tasks: string[]
+    _weightKg: number
     _note: string
-    committed: any
 
     private dirty: Set<string>
 
-    constructor(id: string, date: moment.Moment, tasks: string[], note: string) {
+    constructor(id: string, date: moment.Moment, tasks: string[], weightKg: number, note: string) {
         this.id = id
         this._date = date || moment()
         this._tasks = tasks || []
+        this._weightKg = weightKg || 0.0
         this._note = note || ''
 
         this.dirty = new Set<string>()
@@ -20,10 +21,11 @@ export default class Visit {
         Object.freeze(this.tasks)
     }
 
-    with(fields: {date?: moment.Moment, note?: string, tasks?: string[]}): Visit {
-        const result = new Visit(this.id, this.date, this.tasks, this.note)
+    with(fields: {date?: moment.Moment, note?: string, tasks?: string[], weightKg?: number}): Visit {
+        const result = new Visit(this.id, this.date, this.tasks, this.weightKg, this.note)
         if(fields.date !== undefined) { result.date = fields.date }
         if(fields.tasks !== undefined) { result.tasks = fields.tasks }
+        if (fields.weightKg !== undefined) { result.weightKg = fields.weightKg }
         if(fields.note !== undefined) { result.note = fields.note }
         return result
     }
@@ -41,6 +43,12 @@ export default class Visit {
         this._tasks = val
     }
 
+    get weightKg(): number { return this._weightKg }
+    set weightKg(val: number) {
+        this.dirty.add('kg')
+        this._weightKg = val
+    }
+
     get note() { return this._note }
     set note(val) {
         this.dirty.add('note')
@@ -56,7 +64,7 @@ export default class Visit {
             id: this.id,
             date: this.date.toISOString(),
             tasks: this.tasks,
-            committed: this.committed,
+            kg: this.weightKg,
             note: this.note,
 
             dirty: Array.from(this.dirty)
@@ -65,10 +73,10 @@ export default class Visit {
 
     static deserialize(data: any): Visit {
         const date = moment(data.date)
-        return new Visit(data.id, date, data.tasks, data.note)
+        return new Visit(data.id, date, data.tasks, data.kg, data.note)
     }
 
     static emptyVisit(): Visit {
-        return new Visit(null, moment(), [], '')
+        return new Visit(null, moment(), [], 0.0, '')
     }
 }

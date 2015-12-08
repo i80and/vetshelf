@@ -11,6 +11,7 @@ export class Model {
     ondelete: ()=>void
 
     rawTasks: (p?: string)=>string
+    weightKg: (p?: number)=>number
 
     constructor(appointment: Visit) {
         this.appointment = appointment
@@ -19,6 +20,7 @@ export class Model {
         this.calendar.showing = appointment.date.clone()
 
         this.rawTasks = m.prop(this.appointment.tasks.join(','))
+        this.weightKg = m.prop(this.appointment.weightKg)
         this.onsave = () => {}
         this.ondelete = () => {}
 
@@ -26,7 +28,10 @@ export class Model {
     }
 
     getNewAppointment(): Visit {
-        return this.appointment.with({tasks: this.tasks, date: this.date})
+        return this.appointment.with({
+            tasks: this.tasks,
+            date: this.date,
+            weightKg: this.weightKg()})
     }
 
     get date() {
@@ -54,6 +59,18 @@ export function view(model: Model, options: ViewConfig={}) {
                 onchange: m.withAttr('value', model.rawTasks),
                 value: model.rawTasks(),
                 placeholder: 'Completed Tasks' }),
+            m('input', {
+                onchange: function() {
+                    if(this.value === '') {
+                        model.weightKg(0.0)
+                        return
+                    }
+                    model.weightKg(parseFloat(this.value))
+                },
+                type: 'number',
+                value: model.weightKg() <= 0 ? '' : model.weightKg(),
+                placeholder: 'Weight (kg)'
+            }),
         ]),
         m('div.button-strip', {}, [
             m('button.button-primary', { onclick: () => options.onsave(model) }, 'Save'),
