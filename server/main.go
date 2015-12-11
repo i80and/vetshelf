@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -438,6 +439,59 @@ func (a *Application) HandleInsertVisit(args []interface{}, out *Message) {
 	out.Message = visit.ID
 }
 
+func (a *Application) HandleGetPatientsInterval(args []interface{}, out *Message) {
+	if len(args) < 2 {
+		Error.Printf("Insufficient arguments to get-patients-interval")
+		return
+	}
+
+	var startDate time.Time
+	switch args[0].(type) {
+	case string:
+		var err error
+		startDate, err = time.Parse(ISOTime, args[0].(string))
+		if err != nil {
+			Error.Printf("Error reading start time \"%v\": %v", args[0], err)
+			return
+		}
+	default:
+		Error.Printf("Unknown time value: %v", args[0])
+		return
+	}
+
+	var endDate time.Time
+	switch args[1].(type) {
+	case string:
+		var err error
+		startDate, err = time.Parse(ISOTime, args[1].(string))
+		if err != nil {
+			Error.Printf("Error reading end time \"%v\": %v", args[1], err)
+			return
+		}
+	default:
+		Error.Printf("Unknown time value: %v", args[1])
+		return
+	}
+
+	patients, err := a.Connection.GetPatientsInInterval(&startDate, &endDate)
+	if err != nil {
+		Error.Printf("Error loading visits: %v", err)
+		return
+	}
+
+	responsePatients := []*ResponsePatient{}
+	for _, patient := range patients {
+		response, err := patient.ToResponse(a.Connection)
+		if err != nil {
+			Error.Printf("Error converting patient %s to response: %v", patient.ID, err)
+			continue
+		}
+		responsePatients = append(responsePatients, response)
+	}
+
+	out.Message = responsePatients
+}
+
 func (a *Application) HandleUpdateVisit(args []interface{}, out *Message) {
 	if len(args) < 1 {
 		Error.Printf("Insufficient arguments to update-visit")
@@ -519,6 +573,8 @@ func (a *Application) DispatchMethod(args []interface{}, out *Message) {
 		a.HandleInsertVisit(args, out)
 	case "update-visit":
 		a.HandleUpdateVisit(args, out)
+	case "get-patients-interval":
+		a.HandleGetPatientsInterval(args, out)
 	case "clear":
 		a.HandleClear(out)
 	default:

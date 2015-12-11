@@ -265,6 +265,20 @@ func (c *Connection) UpdateVisit(visit *ResponseVisit) error {
 	return nil
 }
 
+func (c *Connection) GetPatientsInInterval(start *time.Time, end *time.Time) ([]DatabasePatient, error) {
+	var rows []DatabasePatient
+
+	err := c.DB.C("test").Find(bson.M{"type": "patient", "visits.date": bson.M{"$gt": start.Format(ISOTime), "$lt": end.Format(ISOTime)}}).
+		Limit(1000).
+		Select(bson.M{"visits.$": 1}).
+		All(&rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
 // Delete all records in the current database.
 func (c *Connection) Clear() error {
 	_, err := c.DB.C("test").RemoveAll(bson.M{})
