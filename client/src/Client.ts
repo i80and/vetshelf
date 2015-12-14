@@ -115,7 +115,7 @@ export default class Client {
             name: this.name,
             address: this.address,
             email: this.email,
-            phone: this.phone.filter((p) => p.number !== '').map((p) => p.serialize()),
+            phone: this.phone.map((p) => p.serialize()),
             pets: this.pets,
             note: this.note,
 

@@ -25,7 +25,6 @@ include(calendar.hcss)
 include(search-pane.hcss)
 include(edit-pane.hcss)
 include(appointment-editor.hcss)
-include(appointment-editor.hcss)
 
 html {
     height: 100%;
