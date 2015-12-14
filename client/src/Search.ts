@@ -6,6 +6,7 @@ import Connection from './Connection'
 import Patient from './Patient'
 import SearchResults from './SearchResults'
 import Visit from './Visit'
+import PhoneInfo from './PhoneInfo'
 import * as optionsWidget from './optionsWidget'
 import toggleWidget from './toggleWidget'
 import * as appointmentEditor from './appointmentEditor'
@@ -329,6 +330,46 @@ function renderCommonToolbarEntries() {
     ]
 }
 
+function renderEditPhoneNumbers() {
+    const phones = vm.selectedClient.phone
+    phones.push(new PhoneInfo('', ''))
+
+    return m('div#phone-inputs.condensed-entry-list', phones.map((phoneInfo) => {
+        let type = ''
+        if(phoneInfo.note) {
+            const types = ['mobile', 'home', 'work', 'fax']
+            type = types[types.indexOf(phoneInfo.note)]
+            if(type === undefined) {
+                type = ''
+            }
+        }
+
+        return m('div', [
+            m('input[type=tel]', {
+                placeholder: 'Phone Number',
+                pattern: '[0-9\-+ #ext.]+',
+                value: phoneInfo.number,
+                oninput: function() {
+                    vm.selectedClient.savePhone(phoneInfo, phoneInfo.with({ number: this.value }))
+                }
+            }),
+            m('label.select',
+                m('select', {
+                    value: type,
+                    onchange: function() {
+                        if(phoneInfo.number) {
+                            vm.selectedClient.savePhone(phoneInfo, phoneInfo.with({ note: this.value }))
+                        }
+                }}, [
+                    m('option', { value: '' }, ''),
+                    m('option', { value: 'mobile' }, 'Mobile'),
+                    m('option', { value: 'home' }, 'Home'),
+                    m('option', { value: 'work' }, 'Work'),
+                    m('option', { value: 'fax' }, 'Fax')]))
+        ])
+    }))
+}
+
 function renderEditClient() {
     return m('section#edit-pane', [
         m('div#record-pane', [
@@ -347,11 +388,12 @@ function renderEditClient() {
                 placeholder: 'Address',
                 value: vm.selectedClient.address,
                 oninput: function() { vm.selectedClient.address = this.value } }),
-            m('input', {
+            m('input[type=email]', {
                 placeholder: 'Email Address',
                 value: vm.selectedClient.email,
                 oninput: function() { vm.selectedClient.email = this.value }
             }),
+            renderEditPhoneNumbers(),
             m('textarea', {
                 placeholder: 'Notes',
                 rows: 5,

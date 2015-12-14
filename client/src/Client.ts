@@ -57,20 +57,26 @@ export default class Client {
 
     get phone() { return [...this._phone] }
 
-    addPhone(phoneInfo: PhoneInfo) {
+    savePhone(oldPhone: PhoneInfo, newPhone: PhoneInfo) {
         this.dirty.add('phone')
-        this._phone.push(phoneInfo)
-    }
 
-    updatePhone(oldPhone: PhoneInfo, newPhone: PhoneInfo) {
-        this.dirty.add('phone')
-        this._phone = this._phone.map((p) => {
-            if(p === oldPhone) {
-                return newPhone
-            }
+        // If the new phone number has no number associated with it, remove
+        // from the list.
+        const deletePhone = (newPhone.number === '')
+        if(deletePhone) {
+            this._phone = this._phone.filter((p) => p.number !== oldPhone.number)
+            return
+        }
 
-            return p
-        })
+        // Otherwise, see if we can update an existing entry
+        const index = this._phone.findIndex((p) => p.number === oldPhone.number)
+        if(index > 0) {
+            this._phone[index] = newPhone
+            return
+        }
+
+        // If oldPhone wasn't found, just insert the dang thing
+        this._phone.push(newPhone)
     }
 
     removePhone(phoneInfo: PhoneInfo) {
@@ -109,7 +115,7 @@ export default class Client {
             name: this.name,
             address: this.address,
             email: this.email,
-            phone: this.phone.map((p) => p.serialize()),
+            phone: this.phone.filter((p) => p.number !== '').map((p) => p.serialize()),
             pets: this.pets,
             note: this.note,
 

@@ -11,6 +11,12 @@ export default class PhoneInfo {
         Object.freeze(this)
     }
 
+    with(diff: {number?: string, note?: string}): PhoneInfo {
+        return new PhoneInfo(
+            diff.number === undefined? this.number : diff.number,
+            diff.note === undefined? this.note : diff.note)
+    }
+
     serialize() {
         return {
             number: this.number,

@@ -16,12 +16,15 @@ set(BLACK, `#111111')
 set(GRAY, `#AAAAAA')
 set(SILVER, `#DDDDDD')
 
+set(BORDER_GRAY, `#B9B9B9')
+
 /* For somewhat small screens where horizontal space is at a premium. */
 breakpoint(COMPACT, max-device-width: 1200px)
 
 include(calendar.hcss)
 include(search-pane.hcss)
 include(edit-pane.hcss)
+include(appointment-editor.hcss)
 include(appointment-editor.hcss)
 
 html {
@@ -36,18 +39,52 @@ body {
 
 #root-container { height: 100%; }
 
-input, button {
+input, button, select {
     height: 2rem;
     display: inline-block;
     vertical-align: middle;
     text-overflow: ellipsis;
 }
 
-textarea, input, button {
+textarea, input, button, select {
     -moz-box-sizing: border-box;
     box-sizing: border-box;
     margin: 1rem 0 1rem;
 }
+
+select {
+    border: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+}
+
+select > option {
+    padding-right: 2rem;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+select > option:nth-child(even) {
+    background-color: #eee;
+}
+
+label.select > select {
+    margin: inherit;
+}
+
+label.select::after {
+    position:relative;
+    left: -10px;
+    pointer-events: none;
+    content: "\f0d7";
+    font:normal normal normal 14px/1 FontAwesome;
+    font-size:inherit;
+    text-rendering:auto;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    transform:translate(0, 0);
+}
+
 
 button, input[type="button"] {
     background-color: #E6E6E6;
@@ -133,12 +170,12 @@ textarea {
 }
 
 .options-widget > *.inactive {
-    color: #7f7f7f;
+    color: #cccccc;
 }
 
 .options-widget > *:hover { cursor: pointer; }
 
-.options-widget > .inactive:hover { color: #cccccc; }
+.options-widget > .inactive:hover { color: #7f7f7f; }
 
 .toggle-widget {
     display: inline-block;
@@ -155,4 +192,22 @@ textarea {
 
 .left-padded {
     padding-left: 5px;
+}
+
+.condensed-entry-list {
+    border: 0.5px solid BORDER_GRAY;
+    display: block;
+    padding: 1px;
+    width: 100%;
+}
+
+.condensed-entry-list > div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.condensed-entry-list > div > * {
+    margin: 0px;
+    border: none;
 }
