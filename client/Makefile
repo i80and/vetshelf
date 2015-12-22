@@ -10,6 +10,7 @@ SRC=./src/app.ts \
     ./src/optionsWidget.ts \
     ./src/Patient.ts \
     ./src/Search.ts \
+    ./src/Database.ts \
     ./src/SearchResults.ts \
     ./src/toggleWidget.ts \
     ./src/util.ts \

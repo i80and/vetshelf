@@ -3,17 +3,19 @@ import * as util from './util'
 
 export default class Client {
     _id: string
-    _name: string
-    _address: string
-    _email: string
-    _phone: PhoneInfo[]
-    _pets: Set<string>
-    _note: string
+    _rev: string
+    private _name: string
+    private _address: string
+    private _email: string
+    private _phone: PhoneInfo[]
+    private _pets: Set<string>
+    private _note: string
 
     private dirty: Set<string>
 
-    constructor(id: string, options: any) {
-        this._id = id
+    constructor(_id: string, options: any) {
+        this._id = _id
+        this._rev = options._rev
         this._name = options.name || '(unnamed)'
         this._address = options.address || ''
         this._email = options.email || ''
@@ -32,10 +34,10 @@ export default class Client {
         Object.seal(this)
     }
 
-    get isDirty(): boolean { return this.dirty.size > 0 }
+    get id(): string { return this._id }
+    set id(val: string) { this._id = val }
 
-    get id() { return this._id }
-    set id(val) { this._id = val }
+    get isDirty(): boolean { return this.dirty.size > 0 }
 
     get name() { return this._name }
     set name(val) {
@@ -70,7 +72,7 @@ export default class Client {
 
         // Otherwise, see if we can update an existing entry
         const index = this._phone.findIndex((p) => p.number === oldPhone.number)
-        if(index > 0) {
+        if(index >= 0) {
             this._phone[index] = newPhone
             return
         }
@@ -111,16 +113,14 @@ export default class Client {
     serialize() {
         return {
             type: 'client',
-            id: this.id,
+            _id: this._id,
+            _rev: this._rev,
             name: this.name,
             address: this.address,
             email: this.email,
             phone: this.phone.map((p) => p.serialize()),
             pets: this.pets,
-            note: this.note,
-
-            // Filter out dirty fields that are for our own use
-            dirty: Array.from(this.dirty).filter((x) => x[0] !== '_')
+            note: this.note
         }
     }
 
@@ -132,7 +132,7 @@ export default class Client {
         if(data.phone === null) { data.phone = [] }
         data.phone = data.phone.map((c: any) => PhoneInfo.deserialize(c))
 
-        return new Client(data.id, data)
+        return new Client(data._id, data)
     }
 
     static emptyClient(): Client {

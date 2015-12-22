@@ -1,0 +1,228 @@
+/// <reference path="typings/moment/moment.d.ts" />
+/// <reference path="typings/pouchdb.d.ts" />
+
+import SearchResults from './SearchResults'
+import Connection from './Connection'
+import Client from './Client'
+import Patient from './Patient'
+import Visit from './Visit'
+import * as util from './util'
+
+function genID(prefix: string): string {
+    const buf = new Uint32Array(8)
+    const str: string[] = []
+    crypto.getRandomValues(buf)
+    for (let i = 0; i < buf.length; i += 2) {
+        str.push(buf[i].toString(16))
+    }
+
+    return `${prefix}-${str.join('')}`
+}
+
+class TaskIntervals {
+    static heartworm(lastVisit: moment.Moment): moment.Moment {
+        return lastVisit.clone().add(6, 'months')
+    }
+
+    static exam(lastVisit: moment.Moment): moment.Moment {
+        return TaskIntervals.heartworm(lastVisit)
+    }
+}
+
+// Dummy for PouchDB Map/Reduce functions
+const emit: any = null
+
+export default class Database {
+    private connection: Connection
+    private localDatabase: PouchDB
+
+    constructor(connection: Connection) {
+        this.connection = connection
+        this.localDatabase = new PouchDB('vetshelf')
+
+        this.ensureIndexes()
+    }
+
+    async ensureIndexes(): Promise<void> {
+        const index = {
+            _id: '_design/index',
+            _rev: <string>undefined,
+            views: {
+                visits: {
+                    map: function(doc: any) {
+                        if (doc.type !== 'patient') { return }
+                        for (let visit of doc.visits) {
+                            emit(visit.id)
+                        }
+                    }.toString()
+                }
+            }
+        }
+
+        try {
+            const existing: any = await this.localDatabase.get(index._id)
+            if(existing.views === index.views) { return }
+            if (existing._rev) { index._rev = existing._rev }
+        } catch (err) {
+            if (err.status !== 404) { throw err }
+        }
+
+        await this.localDatabase.put(index)
+    }
+
+    async getClients(ids: string[]): Promise<Client[]> {
+        const results = await this.localDatabase.allDocs({
+            include_docs: true,
+            keys: ids
+        })
+
+        return results.rows.map((row) => {
+            return Client.deserialize(row.doc)
+        })
+    }
+
+    async getClient(id: string): Promise<Client> {
+        try {
+            const rawClient = await this.localDatabase.get(id)
+            return Client.deserialize(rawClient)
+        } catch (err) {
+            if (err.status === 404) {
+                throw util.keyError.error(`No such client: "${id}"`)
+            }
+
+            throw err
+        }
+    }
+
+    async getPatients(ids: string[]): Promise<Patient[]> {
+        const results = await this.localDatabase.allDocs({
+            include_docs: true,
+            keys: ids
+        })
+
+        return results.rows.map((row) => {
+            return Patient.deserialize(row.doc)
+        })
+    }
+
+    async getPatient(id: string): Promise<Patient> {
+        try {
+            const rawPatient = await this.localDatabase.get(id)
+            return Patient.deserialize(rawPatient)
+        } catch (err) {
+            if (err.status === 404) {
+                throw util.keyError.error(`No such patient: "${id}"`)
+            }
+
+            throw err
+        }
+    }
+
+    async insertVisit(patientID: string, visit: Visit): Promise<Patient> {
+        if(visit.id === null) { visit.id = genID('v') }
+        const patient = await this.getPatient(patientID)
+
+        patient.visits.push(visit)
+        await this.localDatabase.put(patient.serialize())
+        return patient
+    }
+
+    async updateVisit(visit: Visit): Promise<Patient> {
+        const results = await this.localDatabase.query('index/visits', { key: visit.id, include_docs: true })
+        if(results.rows.length === 0) {
+            throw util.keyError.error(`No such visit: "${visit.id}"`)
+        }
+
+        const patient = Patient.deserialize(results.rows[0].doc)
+        const visitIndex = patient.visits.findIndex((v) => v.id === visit.id)
+        if(visitIndex === -1) {
+            throw util.keyError.error(`No such visit: "${visit.id}"`)
+        }
+
+        patient.visits[visitIndex] = visit
+        await this.updatePatient(patient)
+        return patient
+    }
+
+    async updateClient(client: Client): Promise<string> {
+        if (client._id === null) { client._id = genID('c') }
+        client._rev = (await this.localDatabase.put(client.serialize())).rev
+
+        client.clearDirty()
+        return client.id
+    }
+
+    async updatePatient(patient: Patient, options?: { addOwners: string[] }): Promise<string> {
+        if (patient._id === null) { patient._id = genID('p') }
+        patient._rev = (await this.localDatabase.put(patient.serialize())).rev
+
+        // Add the patient's owners
+        if (options && options.addOwners) {
+            const clients = await this.getClients(options.addOwners)
+            const updateDocs = clients.map((c) => {
+                c.addPet(patient._id)
+                return c.serialize()
+            })
+
+            await this.localDatabase.bulkDocs(updateDocs)
+        }
+
+        patient.clearDirty()
+        return patient._id
+    }
+
+    async populateResultsFromClients(clients: Client[]): Promise<SearchResults> {
+        // Construct our client results, and track their patients
+        const patientSet = new Set<string>()
+        for(let client of clients) {
+            for (let patientID of client.pets) {
+                patientSet.add(patientID)
+            }
+        }
+
+        const patients = new Map<string, Patient>()
+
+        // Attach the patients to our results set
+        const matchedPatientsArray = Array.from(patientSet.values())
+        for (let patient of await this.getPatients(matchedPatientsArray)) {
+            patients.set(patient.id, patient)
+        }
+
+        return new SearchResults(clients, patients, new Set<string>())
+    }
+
+    async showRandom(): Promise<SearchResults> {
+        // Just list the first hundred clients for now
+        const results = await this.localDatabase.allDocs({
+            include_docs: true,
+            startkey: 'c-',
+            endkey: 'c-\uffff',
+            limit: 100 })
+
+        const clients = results.rows.map((doc) => Client.deserialize(doc))
+        return this.populateResultsFromClients(clients)
+    }
+
+    async search(query: string): Promise<SearchResults> {
+        if(query === '' || query === 'upcoming') {
+            return new SearchResults([])
+        } else if (query === 'random') {
+            return await this.showRandom()
+        }
+
+        // Full text search
+        const result = await this.localDatabase.search({
+            query: query,
+            include_docs: true,
+            limit: 100,
+            fields: ['name', 'address', 'note', 'email'],
+            filter: function(doc: any) { return doc.type === 'client' }
+        })
+
+        const clients = result.rows.map((row: any) => {
+            return Client.deserialize(row.doc)
+        })
+
+        return this.populateResultsFromClients(clients)
+    }
+}

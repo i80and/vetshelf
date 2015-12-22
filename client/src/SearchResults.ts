@@ -6,25 +6,24 @@ import * as util from './util'
 
 type visitID = string
 type patientID = string
+type clientID = string
 
 export default class SearchResults {
-    clientIDs: string[]
-    patients: Map<string, Patient>
-    visits: Map<visitID, Visit>
-    visitIndex: Map<visitID, patientID>
-    matchedPatients: Set<string>
-    clientsIndex: Map<string, Client>
+    private clientIDs: clientID[]
+    private patients: Map<patientID, Patient>
+    private visitIndex: Map<visitID, patientID>
+    matchedPatients: Set<patientID>
+    private clientsIndex: Map<clientID, Client>
 
     constructor(clients: Client[],
-                patients: Map<string, Patient>=null,
-                visits: Map<string, Visit>=null,
-                matchedPatients: Set<string>=null) {
-        this.clientIDs = clients.map((doc) => doc.id) || []
-        this.patients = patients || new Map<string, Patient>()
-        this.visits = visits || new Map<string, Visit>()
-        this.matchedPatients = matchedPatients || new Set<string>()
+                patients: Map<patientID, Patient>=null,
+                matchedPatients: Set<patientID>=null) {
 
-        this.clientsIndex = new Map<string, Client>()
+        this.clientIDs = clients.map((doc) => doc.id) || []
+        this.patients = patients || new Map<patientID, Patient>()
+        this.matchedPatients = matchedPatients || new Set<patientID>()
+
+        this.clientsIndex = new Map<clientID, Client>()
         for(let client of clients) {
             this.clientsIndex.set(client.id, client)
         }
@@ -41,90 +40,12 @@ export default class SearchResults {
         return this.clientIDs.length
     }
 
-    client(id: string): Client {
-        const client = this.clientsIndex.get(id)
-        if(!client) {
-            throw util.keyError.error(`No such client: "${id}"`)
-        }
-
-        return client
+    getClient(id: string): Client {
+        return this.clientsIndex.get(id)
     }
 
-    patient(id: string): Patient {
-        const patient = this.patients.get(id)
-        if (!patient) {
-            throw util.keyError.error(`No such patient: "${id}"`)
-        }
-        return patient
-    }
-
-    insertVisit(patientID: string, visit: Visit) {
-        return Connection.theConnection.saveVisit(patientID, visit).then(() => {
-            this.visits.set(visit.id, visit)
-            this.visitIndex.set(visit.id, patientID)
-
-            // An updated visit means the patient due dates might change.
-            return Connection.theConnection.getPatients([patientID])
-        }).then((patients: Patient[]) => {
-            const patient = patients[0]
-            this.patients.set(patient.id, patient)
-        })
-    }
-
-    updateVisit(visit: Visit) {
-        const patientID = this.visitIndex.get(visit.id)
-        if(!patientID) { throw util.valueError.error(`Couldn't find patient for visit ${visit.id}`) }
-
-        return Connection.theConnection.saveVisit(patientID, visit).then(() => {
-            visit.clearDirty()
-            this.visits.set(visit.id, visit)
-
-            // An updated visit means the patient due dates might change.
-            return Connection.theConnection.getPatients([patientID])
-        }).then((patients: Patient[]) => {
-            const patient = patients[0]
-            this.patients.set(patient.id, patient)
-        })
-    }
-
-    updateClient(client: Client) {
-        return Connection.theConnection.saveClient(client).then(() => {
-            client.clearDirty()
-            if(!this.clientsIndex.has(client.id)) {
-                // New client; put it at the top of the clients list
-                this.clientIDs.splice(0, 0, client.id)
-            }
-
-            this.clientsIndex.set(client.id, client)
-            return client.id
-        })
-    }
-
-    updatePatient(patient: Patient, options?: { addOwners: string[] }) {
-        const toAdd = (options && options.addOwners)? options.addOwners : []
-        return Connection.theConnection.savePatient(patient, toAdd).then(() => {
-            patient.clearDirty()
-            this.patients.set(patient.id, patient)
-            return this.refreshClients(toAdd)
-        }).then(() => {
-            return patient.id
-        })
-    }
-
-    refreshClients(clients: string[]) {
-        return Connection.theConnection.getClients(clients).then((clients) => {
-            for(let client of clients) {
-                this.clientsIndex.set(client.id, client)
-            }
-        })
-    }
-
-    refreshPatients(ids: string[]) {
-        return Connection.theConnection.getPatients(ids).then((patients) => {
-            for (let patient of patients) {
-                this.patients.set(patient.id, patient)
-            }
-        })
+    getPatient(id: string): Patient {
+        return this.patients.get(id)
     }
 
     map<T>(f: (c: Client)=>T) {
@@ -138,10 +59,31 @@ export default class SearchResults {
         return result
     }
 
-    clear() {
-        this.patients.clear()
-        this.matchedPatients.clear()
-        this.clientsIndex.clear()
+    refreshClient(client: Client): void {
+        if(!this.clientsIndex.get(client._id)) {
+            // Insert the new client at the top of the results list
+            this.clientIDs.splice(0, 0, client._id)
+        }
+
+        this.clientsIndex.set(client._id, client)
+    }
+
+    refreshPatient(patient: Patient): void {
+        const oldPatient = this.patients.get(patient._id)
+        if(oldPatient) {
+            // Remove any old visits
+            for(let visit of oldPatient.visits) {
+                if(patient.visits.findIndex((v) => v.id == visit.id) < 0) {
+                    // We have to remove this visit
+                    this.visitIndex.delete(visit.id)
+                }
+            }
+        }
+
+        this.patients.set(patient._id, patient)
+        for(let visit of patient.visits) {
+            this.visitIndex.set(visit.id, patient._id)
+        }
     }
 
     static deserialize(data: any) {
@@ -161,18 +103,12 @@ export default class SearchResults {
             patients.set(patient.id, patient)
         }
 
-        const visits = new Map<string, Visit>()
-        for(let rawVisit of data.visits) {
-            const visit = Visit.deserialize(rawVisit)
-            visits.set(visit.id, visit)
-        }
-
         const matchedPatients = new Set<string>()
         for(let petID of data['matched-patients']) {
             matchedPatients.add(petID)
         }
 
-        const results = new SearchResults(clients, patients, visits, matchedPatients)
+        const results = new SearchResults(clients, patients, matchedPatients)
         return results
     }
 }

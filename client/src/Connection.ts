@@ -127,24 +127,28 @@ export default class Connection {
     /// Save a patient to the database, generating a new ID if it isn't already
     /// set. When inserting, specifies a list of client IDs for whom to add
     /// this patient as a pet.
-    savePatient(patient: Patient, clientIDs: string[]=[]) {
+    async savePatient(patient: Patient, clientIDs: string[]=[]): Promise<Patient> {
         const newDoc = patient.id === undefined || patient.id === null
         if(newDoc) {
             patient.id = this.genID()
-            return this.__send_message(['insert-patient', patient.serialize(), clientIDs])
+            await this.__send_message(['insert-patient', patient.serialize(), clientIDs])
+            return patient
         }
 
-        return this.__send_message(['update-patient', patient.serialize()])
+        const rawPatient = await this.__send_message(['update-patient', patient.serialize()])
+        return Patient.deserialize(rawPatient)
     }
 
-    saveClient(client: Client) {
+    async saveClient(client: Client): Promise<Client> {
         const newDoc = client.id === undefined || client.id === null
         if(newDoc) {
             client.id = this.genID()
-            return this.__send_message(['insert-client', client.serialize()])
+            await this.__send_message(['insert-client', client.serialize()])
+            return client
         }
 
-        return this.__send_message(['update-client', client.serialize()])
+        const rawClient = await this.__send_message(['update-client', client.serialize()])
+        return Client.deserialize(rawClient)
     }
 
     saveVisit(patientID: string, visit: Visit) {

@@ -4,21 +4,23 @@ import * as util from './util'
 import Visit from './Visit'
 
 export default class Patient {
-    id: string
-    _name: string
-    _sex: string
-    _species: string
-    _breed: string
-    _description: string
-    _note: string
-    _active: boolean
-    _due: Map<string, moment.Moment>
+    _id: string
+    _rev: string
+    private _name: string
+    private _sex: string
+    private _species: string
+    private _breed: string
+    private _description: string
+    private _note: string
+    private _active: boolean
+    private _due: Map<string, moment.Moment>
 
     visits: Visit[]
     private dirty: Set<string>
 
     constructor(id: string, options: any) {
-        this.id = id
+        this._id = id
+        this._rev = options._rev
         this._name = options.name || '(unnamed)'
         this._sex = options.sex || '?+'
         this._species = options.species || ''
@@ -38,6 +40,9 @@ export default class Patient {
 
         Object.seal(this)
     }
+
+    get id(): string { return this._id }
+    set id(val: string) { this._id = val }
 
     get isDirty(): boolean { return this.dirty.size > 0 }
 
@@ -117,7 +122,8 @@ export default class Patient {
     serialize() {
         return {
             type: 'patient',
-            id: this.id,
+            _id: this._id,
+            _rev: this._rev,
             name: this.name,
             sex: this._sex,
             species: this.species,
@@ -126,8 +132,7 @@ export default class Patient {
             note: this.note,
             active: this.active,
 
-            visits: this.visits,
-            dirty: Array.from(this.dirty)
+            visits: this.visits.map((v) => v.serialize()),
         }
     }
 
@@ -137,7 +142,7 @@ export default class Patient {
         }
 
         data.visits = data.visits.map((v: any) => Visit.deserialize(v))
-        const patient = new Patient(data.id, data)
+        const patient = new Patient(data._id, data)
 
         const due = new Map<string, moment.Moment>()
         for (let name in data.due) {

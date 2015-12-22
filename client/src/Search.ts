@@ -4,6 +4,7 @@
 import Client from './Client'
 import Connection from './Connection'
 import Patient from './Patient'
+import Database from './Database'
 import SearchResults from './SearchResults'
 import Visit from './Visit'
 import PhoneInfo from './PhoneInfo'
@@ -17,55 +18,78 @@ const PAUSE_INTERVAL_MS = 200
 export class ViewModel {
     private timeoutID: number
     results: SearchResults
+    database: Database
     appointmentEditor: appointmentEditor.Model
 
-    __selectedClient: string
-    __selectedPatient: string
+    private selectedID: string
+    private selectedType: string
 
     constructor() {
         this.timeoutID = -1
         this.results = new SearchResults([])
+        this.database = new Database(Connection.theConnection)
+        let w: any = window
+        w.db = this.database
         this.appointmentEditor = null
 
-        this.selected = null
+        this.selectedID = ''
+        this.selectedType = ''
 
-        this.showUpcoming()
+        this.search('upcoming')
     }
 
-    get isDirty() {
-        if(!this.selected) { return false }
-        return this.selected.isDirty
+    set selected(val: Client | Patient) {
+        if(val === null) {
+            this.selectedID = ''
+            this.selectedType = ''
+            return
+        }
+
+        this.selectedID = val._id
+        if(val instanceof Client) {
+            this.selectedType = 'client'
+        } else if(val instanceof Patient) {
+            this.selectedType = 'patient'
+        } else {
+            throw util.assertionError.error(`Bad value ${val} not client or patient`)
+        }
     }
 
     get selected(): Client | Patient {
-        if (this.__selectedClient) { return this.results.client(this.__selectedClient) }
-        if (this.__selectedPatient) { return this.results.patient(this.__selectedPatient) }
+        if(this.clientIsSelected()) {
+            return this.results.getClient(this.selectedID)
+        } else if(this.patientIsSelected()) {
+            return this.results.getPatient(this.selectedID)
+        }
+
         return null
     }
 
     get selectedClient(): Client {
-        if (this.__selectedClient) { return this.results.client(this.__selectedClient) }
-        throw util.assertionError.error('Attempt to access client when patient selected')
+        if(!this.clientIsSelected()) {
+            throw util.assertionError.error('Client requested when Patient selected')
+        }
+
+        return <Client>this.selected
     }
 
     get selectedPatient(): Patient {
-        if (this.__selectedPatient) { return this.results.patient(this.__selectedPatient) }
-        throw util.assertionError.error('Attempt to access patient when client selected')
-    }
-
-    set selected(record: Client | Patient) {
-        if(record instanceof Client) {
-            this.__selectedClient = record.id
-            this.__selectedPatient = ''
-        } else if(record instanceof Patient) {
-            this.__selectedClient = null
-            this.__selectedPatient = record.id
-        } else {
-            this.__selectedClient = this.__selectedPatient = ''
+        if(!this.patientIsSelected()) {
+            throw util.assertionError.error('Patient requested when Client selected')
         }
+
+        return <Patient>this.selected
     }
 
-    isSelected(record: any) {
+    clientIsSelected(): boolean { return this.selectedType === 'client' }
+    patientIsSelected(): boolean { return this.selectedType === 'patient' }
+
+    get isDirty(): boolean {
+        if(!this.selected) { return false }
+        return this.selected.isDirty
+    }
+
+    isSelected(record: any): boolean {
         if(this.selected === null) { return false }
 
         if(this.selected.id === record.id) {
@@ -79,18 +103,13 @@ export class ViewModel {
         return false
     }
 
-    async search(query: string) {
+    async search(query: string): Promise<void> {
         m.startComputation()
 
         this.selected = null
-        this.results.clear()
 
         try {
-            if (query === '') {
-                await this.showUpcoming()
-            } else if (query === 'random') {
-                await this.showRandomClients()
-            }
+            this.results = await this.database.search(query)
 
             // Don't search unless there's been a pause
             if(this.timeoutID >= 0) {
@@ -108,26 +127,28 @@ export class ViewModel {
         }
     }
 
-    addClient() {
+    async addClient(): Promise<void> {
         const client = Client.emptyClient()
 
         m.startComputation()
-        this.results.updateClient(client).then((id: string) => {
-            return this.selectClient(id)
-        }).then(() => {
+        try {
+            const id = await this.database.updateClient(client)
+            this.results.refreshClient(client)
+            await this.selectClient(id)
+        } catch(err) {
+            console.error(err)
+        } finally {
             m.endComputation()
-        }).catch((msg) => {
-            console.error(msg)
-            m.endComputation()
-        })
+        }
     }
 
-    addPatient() {
-        if(!(this.selected instanceof Client)) {
+    async addPatient(): Promise<void> {
+        const selected = await this.selected
+        if(!(selected instanceof Client)) {
             throw util.typeError.error('Cannot create patient child of selection')
         }
 
-        if(!this.selected.id) {
+        if(!selected.id) {
             throw util.valueError.error('Selection has no ID')
         }
 
@@ -135,37 +156,40 @@ export class ViewModel {
         const clientID = this.selected.id
 
         m.startComputation()
-        this.results.updatePatient(patient, { addOwners: [clientID] }).then((id: string) => {
-            return this.selectPatient(id)
-        }).then(() => {
+        try {
+            const id = await this.database.updatePatient(patient, { addOwners: [clientID] })
+            this.results.refreshPatient(patient)
+            this.results.refreshClient(await this.database.getClient(clientID))
+            await this.selectPatient(id)
+        } catch(err) {
+            console.error(err)
+        } finally {
             m.endComputation()
-        }).catch((msg: any) => {
-            console.error(msg)
-            m.endComputation()
-        })
+        }
     }
 
-    save() {
+    async save(): Promise<void> {
         if(!this.isDirty) { return }
 
         m.startComputation()
-        new Promise((resolve) => {
+        try {
             const selected = this.selected
 
-            if(selected instanceof Client) {
-                resolve(this.results.updateClient(selected))
-            } else if(selected instanceof Patient) {
-                resolve(this.results.updatePatient(selected))
+            if (selected instanceof Client) {
+                await this.database.updateClient(selected)
+                this.results.refreshClient(selected)
+            } else if (selected instanceof Patient) {
+                await this.database.updatePatient(selected)
+                this.results.refreshPatient(selected)
             }
-        }).catch((msg: any) => {
-            console.error(msg)
+        } catch(err) {
+            console.error(err)
+        } finally {
             m.endComputation()
-        }).then(() => {
-            m.endComputation()
-        })
+        }
     }
 
-    revert() {
+    revert(): Promise<Client|Patient> {
         if(this.isDirty) {
             if (!window.confirm('Are you sure you want to revert your working changes?')) {
                 return
@@ -180,70 +204,63 @@ export class ViewModel {
         }
     }
 
-    showUpcoming() {
-        return Connection.theConnection.showUpcoming().then((results) => {
-            this.results = results
-        })
-    }
-
-    showRandomClients() {
-        return Connection.theConnection.getRandomClients().then((results) => {
-            this.results = results
-        })
-    }
-
-    selectClient(id: string) {
+    selectClient(id: string): Promise<Client> {
         return this.__selectRecord(id, (id: string) => {
-            return this.results.refreshClients([id]).then(() => {
-                return this.results.client(id)
-            })
+            return this.database.getClient(id)
         })
     }
 
-    selectPatient(id: string) {
+    selectPatient(id: string): Promise<Patient> {
         return this.__selectRecord(id, (id: string) => {
-            return this.results.refreshPatients([id]).then(() => {
-                return this.results.patient(id)
-            })
+            return this.database.getPatient(id)
         })
     }
 
-    addAppointment() {
+    async addAppointment(): Promise<void> {
         const newVisit = Visit.emptyVisit()
         m.startComputation()
-        this.results.insertVisit(this.selected.id, newVisit).then(() => {
+        try {
+            const patient = await this.database.insertVisit(this.selected.id, newVisit)
             this.appointmentEditor = new appointmentEditor.Model(newVisit)
+            this.results.refreshPatient(patient)
+        } catch(err) {
+            console.error(err)
+        } finally {
             m.endComputation()
-        }).catch(() => {
+        }
+    }
+
+    async deleteAppointment(): Promise<void> {
+        m.startComputation()
+        try {
+            const patient = await this.database.getPatient(this.selected.id)
+            patient.visits = patient.visits.filter((v) => v.id != this.appointmentEditor.appointment.id)
+            this.appointmentEditor = null
+            await this.database.updatePatient(patient)
+            this.results.refreshPatient(patient)
+        } catch (err) {
+            console.error(err)
+        } finally {
             m.endComputation()
-        })
+        }
     }
 
     selectAppointment(visit: Visit) {
         this.appointmentEditor = new appointmentEditor.Model(visit)
     }
 
-    updateAppointment(editor: appointmentEditor.Model) {
-        m.startComputation()
+    async updateAppointment(editor: appointmentEditor.Model): Promise<void> {
         const newAppointment = editor.getNewAppointment()
-        let promise: any
-        if(newAppointment.id === null) {
-            if(!(this.selected instanceof Patient)) {
-                throw util.assertionError.error(`Not patient: "${this.selected}"`)
-            }
-
-            promise = this.results.insertVisit(this.selected.id, newAppointment)
-        } else {
-            promise = this.results.updateVisit(newAppointment)
+        m.startComputation()
+        try {
+            const patient = await this.database.updateVisit(newAppointment)
+            this.results.refreshPatient(patient)
+        } catch(err) {
+            console.error(err)
+            m.endComputation()
+        } finally {
+            m.endComputation()
         }
-
-        promise.then(() => {
-            m.endComputation()
-        }).catch((err: any) => {
-            m.endComputation()
-            console.error(`Failed to update visit ${newAppointment.id}`)
-            throw err
-        })
     }
 
     get selectedAppointment() {
@@ -268,9 +285,9 @@ export class ViewModel {
         })
     }
 
-    async __search(query: string) {
+    async __search(query: string): Promise<void> {
         try {
-            this.results = (await Connection.theConnection.search(query))
+            this.results = (await this.database.search(query))
         } catch(err) {
             console.error(err)
         }
@@ -280,7 +297,7 @@ export class ViewModel {
 export let vm: ViewModel = null
 
 function renderPatient(petID: string) {
-    const patient = vm.results.patients.get(petID)
+    const patient = vm.results.getPatient(petID)
     if(!patient) {
         console.error(`No such patient: ${petID}`)
         return m('li.patient-info')
@@ -497,7 +514,7 @@ function renderEditPatient() {
     if(vm.appointmentEditor) {
         children.push(appointmentEditor.view(vm.appointmentEditor, {
             onsave: (m) => vm.updateAppointment(m),
-            ondelete: () => console.log('Delete')
+            ondelete: () => vm.deleteAppointment()
         }))
     }
 
@@ -522,8 +539,8 @@ export const view = function() {
             m('div#add-client-button.small-button', {
                 title: 'Add a new client',
                 onclick: () => vm.addClient() }, m('span.fa.fa-plus')),
-            m('ul#search-results', vm.results.map((client: Client) => {
-                return renderClient(client)
+            m('ul#search-results', vm.results.map((c: Client) => {
+                return renderClient(c)
             }))
         ]),
         renderEditSelected()
