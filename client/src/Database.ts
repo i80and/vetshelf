@@ -5,7 +5,6 @@ import SearchResults from './SearchResults'
 import Connection from './Connection'
 import Client from './Client'
 import Patient from './Patient'
-import Visit from './Visit'
 import * as util from './util'
 
 // Dummy for PouchDB Map/Reduce functions
@@ -32,14 +31,6 @@ export default class Database {
                         if (doc.type !== 'client') { return }
                         for (let petID of doc.pets) {
                             emit(petID)
-                        }
-                    }.toString()
-                },
-                visits: {
-                    map: function(doc: any) {
-                        if (doc.type !== 'patient') { return }
-                        for (let visit of doc.visits) {
-                            emit(visit.id)
                         }
                     }.toString()
                 },
@@ -120,24 +111,6 @@ export default class Database {
 
         const clientIDs = new Set(results.rows.map((row) => row.id))
         return this.getClients(Array.from(clientIDs))
-    }
-
-    async updateVisit(visit: Visit): Promise<Patient> {
-        const results = await this.localDatabase.query('index/visits', { key: visit.id, include_docs: true })
-        if(results.rows.length === 0) {
-            throw util.keyError.error(`No such visit: "${visit.id}"`)
-        }
-
-        const patient = Patient.deserialize(results.rows[0].doc)
-        const visitIndex = patient.visits.findIndex((v) => v.id === visit.id)
-        if(visitIndex === -1) {
-            throw util.keyError.error(`No such visit: "${visit.id}"`)
-        }
-
-        patient.visits[visitIndex] = visit
-        await this.updatePatient(patient)
-        patient.refreshDueDates()
-        return patient
     }
 
     async updateClient(client: Client): Promise<string> {
