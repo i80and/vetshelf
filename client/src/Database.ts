@@ -2,7 +2,6 @@
 /// <reference path="typings/pouchdb.d.ts" />
 
 import SearchResults from './SearchResults'
-import Connection from './Connection'
 import Client from './Client'
 import Patient from './Patient'
 import * as util from './util'
@@ -11,14 +10,10 @@ import * as util from './util'
 const emit: any = null
 
 export default class Database {
-    private connection: Connection
     private localDatabase: PouchDB
 
-    constructor(connection: Connection) {
-        this.connection = connection
+    constructor() {
         this.localDatabase = new PouchDB('vetshelf')
-
-        this.ensureIndexes()
     }
 
     async ensureIndexes(): Promise<void> {
@@ -113,11 +108,46 @@ export default class Database {
         return this.getClients(Array.from(clientIDs))
     }
 
+    async updateSearchDocument(client: Client): Promise<void> {
+        const summary: any = {}
+        const patients = await this.getPatients(client.pets)
+        const patientSummaries = patients.map((p) => p.summarize())
+
+        summary._id = `s-${client._id.replace('c-', '')}`
+        summary.type = 'search'
+        summary.client = client.summarize()
+        summary.pets = {}
+        for(let patientSummary of patientSummaries) {
+            for(let field in patientSummary) {
+                if (!patientSummary.hasOwnProperty(field)) {
+                    continue
+                }
+
+                if(summary.pets[field] === undefined) {
+                    summary.pets[field] = []
+                }
+
+                summary.pets[field].push(patientSummary[field])
+            }
+        }
+
+        try {
+            const existing: any = await this.localDatabase.get(summary._id)
+            if (existing._rev) { summary._rev = existing._rev }
+        } catch (err) {
+            if (err.status !== 404) { throw err }
+        }
+
+        await this.localDatabase.put(summary)
+    }
+
     async updateClient(client: Client): Promise<string> {
         if (client._id !== null && !client.isDirty) { return client._id }
 
         if (client._id === null) { client._id = util.genID('c') }
         client._rev = (await this.localDatabase.put(client.serialize())).rev
+
+        await this.updateSearchDocument(client)
 
         client.clearDirty()
         return client.id
@@ -138,6 +168,11 @@ export default class Database {
             })
 
             await this.localDatabase.bulkDocs(updateDocs)
+        }
+
+        const owners = await this.getOwners([patient.id])
+        for(let owner of owners) {
+            await this.updateSearchDocument(owner)
         }
 
         patient.clearDirty()
@@ -220,13 +255,13 @@ export default class Database {
             query: query,
             include_docs: true,
             limit: 100,
-            fields: ['name', 'address', 'note', 'email'],
-            filter: function(doc: any) { return doc.type === 'client' }
+            fields: ['client.name', 'client.address', 'client.email', 'client.note',
+                     'pets.name', 'pets.species', 'pets.breed', 'pets.sex', 'pets.description', 'pets.note'],
+            filter: function(doc: any) { return doc.type === 'search' }
         })
 
-        const clients = result.rows.map((row: any) => {
-            return Client.deserialize(row.doc)
-        })
+        const clientIDs = result.rows.map((row: any) => row.doc.client._id)
+        const clients = await this.getClients(clientIDs)
 
         return this.populateResultsFromClients(clients)
     }

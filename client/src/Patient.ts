@@ -36,6 +36,18 @@ interface ISerializedPatient {
     due: { [s: string]: string }
 }
 
+interface ISummary {
+    [index:string]: string
+
+    _id: string,
+    name: string,
+    sex: string,
+    species: string,
+    breed: string
+    description: string,
+    note: string
+}
+
 export default class Patient {
     _id: patientID
     _rev: string
@@ -242,6 +254,30 @@ export default class Patient {
 
             visits: this._visits.map((v) => v.serialize()),
             due: dueDates
+        }
+    }
+
+    summarize(): ISummary {
+        const terms: string[] = []
+        if(this.sex === 'm') {
+            terms.push('male')
+            if (!this.intact) { terms.push('neuter') }
+        } else if(this.sex === 'f') {
+            terms.push('female')
+            if (!this.intact) { terms.push('spay') }
+        }
+
+        if (this.intact) { terms.push('intact') }
+        else { terms.push('fixed') }
+
+        return {
+            _id: this._id,
+            name: this.name,
+            sex: terms.join(' '),
+            species: this.species,
+            breed: this.breed,
+            description: this.description,
+            note: this.note,
         }
     }
 

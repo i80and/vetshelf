@@ -1,6 +1,16 @@
 import PhoneInfo from './PhoneInfo'
 import * as util from './util'
 
+interface ISummary {
+    [index: string]: string
+
+    _id: string,
+    name: string,
+    address: string,
+    email: string,
+    note: string,
+}
+
 export default class Client {
     _id: string
     _rev: string
@@ -121,6 +131,16 @@ export default class Client {
             phone: this.phone.map((p) => p.serialize()),
             pets: this.pets,
             note: this.note
+        }
+    }
+
+    summarize(): ISummary {
+        return {
+            _id: this._id,
+            name: this.name,
+            address: this.address,
+            email: this.email,
+            note: this.note,
         }
     }
 

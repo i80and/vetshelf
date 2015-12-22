@@ -2,7 +2,6 @@
 /// <reference path="typings/moment/moment.d.ts" />
 
 import Client from './Client'
-import Connection from './Connection'
 import Patient from './Patient'
 import Database from './Database'
 import SearchResults from './SearchResults'
@@ -18,16 +17,16 @@ const PAUSE_INTERVAL_MS = 200
 export class ViewModel {
     private timeoutID: number
     results: SearchResults
-    database: Database
+    private database: Database
     appointmentEditor: appointmentEditor.Model
 
     private selectedID: string
     private selectedType: string
 
-    constructor() {
+    constructor(database: Database) {
         this.timeoutID = -1
         this.results = new SearchResults([])
-        this.database = new Database(Connection.theConnection)
+        this.database = database
         let w: any = window
         w.db = this.database
         this.appointmentEditor = null
@@ -89,7 +88,7 @@ export class ViewModel {
         return this.selected.isDirty
     }
 
-    isSelected(record: any): boolean {
+    isSelected(record: Client|Patient): boolean {
         if(this.selected === null) { return false }
 
         if(this.selected.id === record.id) {
@@ -542,5 +541,10 @@ export const view = function() {
 }
 
 export const controller = function() {
-    vm = new ViewModel()
+    const database = new Database()
+    m.startComputation()
+    database.ensureIndexes().then(() => {
+        vm = new ViewModel(database)
+        m.endComputation()
+    })
 }
