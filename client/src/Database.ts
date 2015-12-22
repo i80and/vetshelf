@@ -38,11 +38,27 @@ export default class Database {
             _id: '_design/index',
             _rev: <string>undefined,
             views: {
+                owners: {
+                    map: function(doc: any) {
+                        if (doc.type !== 'client') { return }
+                        for (let petID of doc.pets) {
+                            emit(petID)
+                        }
+                    }.toString()
+                },
                 visits: {
                     map: function(doc: any) {
                         if (doc.type !== 'patient') { return }
                         for (let visit of doc.visits) {
                             emit(visit.id)
+                        }
+                    }.toString()
+                },
+                upcoming: {
+                    map: function(doc: any) {
+                        if (doc.type !== 'patient') { return }
+                        for (let visit of doc.visits) {
+                            emit(visit.date)
                         }
                     }.toString()
                 }
@@ -106,6 +122,15 @@ export default class Database {
 
             throw err
         }
+    }
+
+    async getOwners(patientIDs: string[]): Promise<Client[]> {
+        const results = await this.localDatabase.query('index/owners', {
+            keys: patientIDs
+        })
+
+        const clientIDs = new Set(results.rows.map((row) => row.id))
+        return this.getClients(Array.from(clientIDs))
     }
 
     async insertVisit(patientID: string, visit: Visit): Promise<Patient> {
@@ -195,9 +220,41 @@ export default class Database {
         return this.populateResultsFromClients(clients)
     }
 
+    async showUpcoming(): Promise<SearchResults> {
+        const results = await this.localDatabase.query('index/upcoming', {
+            include_docs: true,
+            startkey: moment().toISOString(),
+            limit: 100
+        })
+
+        const matchedPatients = new Set<string>()
+        const patients = new Map<string, Patient>()
+        for(let row of results.rows) {
+            matchedPatients.add(row.doc._id)
+            patients.set(row.doc._id, Patient.deserialize(row.doc))
+        }
+        const clients = await this.getOwners(Array.from(matchedPatients))
+
+        // Fill in the remaining patients
+        const missingPatients = new Set<string>()
+        for(let client of clients) {
+            for(let petID of client.pets) {
+                if(!matchedPatients.has(petID)) {
+                    missingPatients.add(petID)
+                }
+            }
+        }
+
+        for(let patient of (await this.getPatients(Array.from(missingPatients)))) {
+            patients.set(patient.id, patient)
+        }
+
+        return new SearchResults(clients, patients, matchedPatients)
+    }
+
     async search(query: string): Promise<SearchResults> {
         if(query === '' || query === 'upcoming') {
-            return new SearchResults([])
+            return await this.showUpcoming()
         } else if (query === 'random') {
             return await this.showRandom()
         }
