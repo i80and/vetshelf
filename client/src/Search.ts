@@ -204,14 +204,14 @@ export class ViewModel {
         }
     }
 
-    selectClient(id: string): Promise<Client> {
-        return this.__selectRecord(id, (id: string) => {
+    selectClient(clientID: string): Promise<Client> {
+        return this.__selectRecord(clientID, (id: string) => {
             return this.database.getClient(id)
         })
     }
 
-    selectPatient(id: string): Promise<Patient> {
-        return this.__selectRecord(id, (id: string) => {
+    selectPatient(patientID: string): Promise<Patient> {
+        return this.__selectRecord(patientID, (id: string) => {
             return this.database.getPatient(id)
         })
     }

@@ -39,12 +39,12 @@ export class Model {
     }
 }
 
-interface ViewConfig {
+interface IViewConfig {
     onedit?: (m: Model) => void
     ondelete?: () => void
 }
 
-export function view(model: Model, options: ViewConfig={}) {
+export function view(model: Model, options: IViewConfig={}) {
     if (!options.onedit) { options.onedit = () => { } }
     if (!options.ondelete) { options.ondelete = () => {} }
 

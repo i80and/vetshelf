@@ -5,7 +5,7 @@
 // draw) use of moment. Much of it is unnecessary; we can cache almost everything,
 // either at the moment-level or at the draw level. Or both!
 
-interface ViewConfig {
+interface IViewConfig {
     onchange?: (d:moment.Moment) => void;
 }
 
@@ -69,12 +69,12 @@ export class CalendarModel {
     }
 }
 
-function selectDay(model: CalendarModel, day: moment.Moment, options: ViewConfig) {
+function selectDay(model: CalendarModel, day: moment.Moment, options: IViewConfig) {
     model.selected = day
     if(options.onchange) { options.onchange.bind(model)(day) }
 }
 
-function renderMonthDay(model: CalendarModel, cursor: moment.Moment, options: ViewConfig) {
+function renderMonthDay(model: CalendarModel, cursor: moment.Moment, options: IViewConfig) {
     const elementOptions: any = {}
     if(cursor.month() !== model.showing.month()) {
         elementOptions.class = 'outside-month'
@@ -95,7 +95,7 @@ function renderMonthDay(model: CalendarModel, cursor: moment.Moment, options: Vi
     return element
 }
 
-function renderMonthWeek(model: CalendarModel, cursor: moment.Moment, options: ViewConfig) {
+function renderMonthWeek(model: CalendarModel, cursor: moment.Moment, options: IViewConfig) {
     return m('tr', [
         renderMonthDay(model, cursor, options),
         renderMonthDay(model, cursor, options),
@@ -107,7 +107,7 @@ function renderMonthWeek(model: CalendarModel, cursor: moment.Moment, options: V
     ])
 }
 
-export function monthWidget(model: CalendarModel, options: ViewConfig={}) {
+export function monthWidget(model: CalendarModel, options: IViewConfig={}) {
     const cursor = model.showing.clone()
     cursor.startOf('month')
     cursor.startOf('week')

@@ -1,7 +1,5 @@
-import Connection from './Connection'
 import Client from './Client'
 import Patient from './Patient'
-import Visit from './Visit'
 import * as util from './util'
 
 type visitID = string
@@ -73,7 +71,7 @@ export default class SearchResults {
         if(oldPatient) {
             // Remove any old visits
             for(let visit of oldPatient.visits) {
-                if(patient.visits.findIndex((v) => v.id == visit.id) < 0) {
+                if(patient.visits.findIndex((v) => v.id === visit.id) < 0) {
                     // We have to remove this visit
                     this.visitIndex.delete(visit.id)
                 }

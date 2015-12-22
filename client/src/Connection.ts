@@ -1,5 +1,4 @@
 import Client from './Client'
-import PhoneInfo from './PhoneInfo'
 import Patient from './Patient'
 import SearchResults from'./SearchResults'
 import Visit from './Visit'
@@ -18,12 +17,17 @@ function genID() {
 }
 
 class PendingContext {
+    private id: number
     private timeoutIndex: number
+    public resolve: (val:{})=>void
+    public reject: (msg: {}) => void
+    public removeFunc: (i:number)=>void
 
-    constructor(private id: number,
-                public resolve: (val:{})=>void,
-                public reject: (msg:{})=>void,
-                public removeFunc: (i:number)=>void) {
+    constructor(id: number,
+                resolve: (val:{})=>void,
+                reject: (msg:{})=>void,
+                removeFunc: (i:number)=>void) {
+        this.id = id
         this.resolve = resolve
         this.reject = reject
         this.removeFunc = removeFunc
@@ -95,7 +99,7 @@ export default class Connection {
         })
     }
 
-    async search(query: string) {
+    async search(query: string): Promise<SearchResults> {
         const results = await this.__send_message(['search', query])
         return SearchResults.deserialize(results)
     }

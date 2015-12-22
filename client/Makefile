@@ -41,8 +41,8 @@ build:
 ./build/style/%.css: ./style/%.css
 	cp $^ $@
 
-jshint: node_modules .obj ./build/js/app.js
-	./node_modules/.bin/jshint -c .jshintrc ./.obj
+lint:
+	./node_modules/.bin/tslint $(SRC)
 
 node_modules: package.json
 	npm update

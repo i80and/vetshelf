@@ -1,11 +1,9 @@
-import * as util from './util'
-
 export default class PhoneInfo {
     number: string
     note: string
 
-    constructor(number: string, note: string) {
-        this.number = number
+    constructor(num: string, note: string) {
+        this.number = num
         this.note = note || ''
 
         Object.freeze(this)

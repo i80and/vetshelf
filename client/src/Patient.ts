@@ -21,7 +21,7 @@ class TaskIntervals {
 
 type patientID = string
 
-interface SerializedPatient {
+interface ISerializedPatient {
     type: string,
     _id: patientID,
     _rev: string,
@@ -169,7 +169,7 @@ export default class Patient {
     }
 
     deleteVisit(visitID: string): void {
-        this._visits = this._visits.filter((v) => v.id != visitID)
+        this._visits = this._visits.filter((v) => v.id !== visitID)
         this.refreshDueDates()
         this.dirty.add('visits')
     }
@@ -210,7 +210,6 @@ export default class Patient {
         const dueDates = new Map<string, moment.Moment>()
         for (let taskName of TaskIntervals.tasks) {
             const lastVisit = this.lastVisitWithTask(taskName)
-            let due: moment.Moment
             if (lastVisit === null) {
                 dueDates.set(taskName, moment())
                 continue
@@ -222,7 +221,7 @@ export default class Patient {
         this._due = dueDates
     }
 
-    serialize(): SerializedPatient {
+    serialize(): ISerializedPatient {
         this.refreshDueDates()
         const dueDates: { [s: string]: string } = {}
         for(let [taskName, dueDate] of this._due) {
@@ -246,7 +245,7 @@ export default class Patient {
         }
     }
 
-    static deserialize(data: SerializedPatient) {
+    static deserialize(data: ISerializedPatient) {
         if (data.type !== 'patient') {
             throw util.valueError.error(`Not a patient instance: ${data.type}`)
         }

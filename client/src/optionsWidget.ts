@@ -3,7 +3,13 @@
 function nopFunc() { return }
 
 export class State {
-    constructor(public name: string, public view: ()=>MithrilVirtualElement) {}
+    public name: string
+    public view: () => MithrilVirtualElement
+
+    constructor(name: string, view: ()=>MithrilVirtualElement) {
+        this.name = name
+        this.view = view
+    }
 }
 
 export function optionsWidget(attrs: { states: State[], onclick: any, value: any, allowNone?: boolean }) {
