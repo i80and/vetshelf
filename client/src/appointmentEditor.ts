@@ -7,8 +7,6 @@ import Visit from './Visit'
 export class Model {
     appointment: Visit
     calendar: calendarWidget.CalendarModel
-    onsave: (m: Model)=>void
-    ondelete: ()=>void
 
     rawTasks: (p?: string)=>string
     weightKg: (p?: number)=>number
@@ -21,8 +19,6 @@ export class Model {
 
         this.rawTasks = m.prop(this.appointment.tasks.join(','))
         this.weightKg = m.prop(this.appointment.weightKg)
-        this.onsave = () => {}
-        this.ondelete = () => {}
 
         Object.seal(this)
     }
@@ -44,19 +40,26 @@ export class Model {
 }
 
 interface ViewConfig {
-    onsave?: (m: Model) => void;
-    ondelete?: () => void;
+    onedit?: (m: Model) => void
+    ondelete?: () => void
 }
 
 export function view(model: Model, options: ViewConfig={}) {
-    if(!options.onsave) { options.onsave = () => {} }
-    if(!options.ondelete) { options.ondelete = () => {} }
+    if (!options.onedit) { options.onedit = () => { } }
+    if (!options.ondelete) { options.ondelete = () => {} }
 
     return m('div.appointment-editor-widget', {}, [
-        calendarWidget.monthWidget(model.calendar),
+        calendarWidget.monthWidget(model.calendar, {
+            onchange: function() {
+                options.onedit(model)
+            }
+        }),
         m('div', {}, [
             m('input', {
-                onchange: m.withAttr('value', model.rawTasks),
+                onchange: function() {
+                    model.rawTasks(this.value)
+                    options.onedit(model)
+                },
                 value: model.rawTasks(),
                 placeholder: 'Completed Tasks' }),
             m('input', {
@@ -66,6 +69,7 @@ export function view(model: Model, options: ViewConfig={}) {
                         return
                     }
                     model.weightKg(parseFloat(this.value))
+                    options.onedit(model)
                 },
                 type: 'number',
                 value: model.weightKg() <= 0 ? '' : model.weightKg(),
@@ -73,7 +77,6 @@ export function view(model: Model, options: ViewConfig={}) {
             }),
         ]),
         m('div.button-strip', {}, [
-            m('button.button-primary', { onclick: () => options.onsave(model) }, 'Save'),
             m('button.button-error', { onclick: () => options.ondelete() }, 'Delete')
         ])
     ])

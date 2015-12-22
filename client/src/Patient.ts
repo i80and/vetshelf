@@ -48,7 +48,7 @@ export default class Patient {
     private _active: boolean
     private _due: Map<string, moment.Moment>
 
-    visits: Visit[]
+    private _visits: Visit[]
     private dirty: Set<string>
 
     constructor(id: patientID, options: any) {
@@ -133,6 +133,47 @@ export default class Patient {
         this._sex = `${this.sex}${newVal}`
     }
 
+    set visits(visits: Visit[]) {
+        this._visits = visits.slice()
+        Object.freeze(this._visits)
+    }
+
+    get visits(): Visit[] {
+        return this._visits
+    }
+
+    insertVisit(): Visit {
+        const visit = Visit.emptyVisit()
+        visit.id = util.genID('v')
+        const copy = this.visits.slice()
+        copy.push(visit)
+        this.visits = copy
+        this.dirty.add('visits')
+
+        return visit
+    }
+
+    updateVisit(visit: Visit): void {
+        let dirty = false
+        this._visits = this._visits.map((v) => {
+            if(v.id === visit.id) {
+                this.dirty.add('visits')
+                dirty = true
+                return visit
+            }
+
+            return v
+        })
+
+        if (dirty) { this.refreshDueDates() }
+    }
+
+    deleteVisit(visitID: string): void {
+        this._visits = this._visits.filter((v) => v.id != visitID)
+        this.refreshDueDates()
+        this.dirty.add('visits')
+    }
+
     dueByDate(): [moment.Moment, string[]][] {
         // First collapse periodicals due on the same date
         const dateMap = new Map<string, string[]>()
@@ -200,7 +241,7 @@ export default class Patient {
             note: this.note,
             active: this.active,
 
-            visits: this.visits.map((v) => v.serialize()),
+            visits: this._visits.map((v) => v.serialize()),
             due: dueDates
         }
     }

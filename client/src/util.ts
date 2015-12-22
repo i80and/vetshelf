@@ -9,6 +9,17 @@ export function fromNowMinimum(m: moment.Moment): string {
     return m.from(now)
 }
 
+export function genID(prefix: string): string {
+    const buf = new Uint32Array(8)
+    const str: string[] = []
+    crypto.getRandomValues(buf)
+    for (let i = 0; i < buf.length; i += 2) {
+        str.push(buf[i].toString(16))
+    }
+
+    return `${prefix}-${str.join('')}`
+}
+
 export class SimpleError {
     name: string
     private errors: Symbol[]

@@ -8,17 +8,6 @@ import Patient from './Patient'
 import Visit from './Visit'
 import * as util from './util'
 
-function genID(prefix: string): string {
-    const buf = new Uint32Array(8)
-    const str: string[] = []
-    crypto.getRandomValues(buf)
-    for (let i = 0; i < buf.length; i += 2) {
-        str.push(buf[i].toString(16))
-    }
-
-    return `${prefix}-${str.join('')}`
-}
-
 // Dummy for PouchDB Map/Reduce functions
 const emit: any = null
 
@@ -133,16 +122,6 @@ export default class Database {
         return this.getClients(Array.from(clientIDs))
     }
 
-    async insertVisit(patientID: string, visit: Visit): Promise<Patient> {
-        if(visit.id === null) { visit.id = genID('v') }
-        const patient = await this.getPatient(patientID)
-
-        patient.visits.push(visit)
-        await this.localDatabase.put(patient.serialize())
-        patient.refreshDueDates()
-        return patient
-    }
-
     async updateVisit(visit: Visit): Promise<Patient> {
         const results = await this.localDatabase.query('index/visits', { key: visit.id, include_docs: true })
         if(results.rows.length === 0) {
@@ -162,7 +141,9 @@ export default class Database {
     }
 
     async updateClient(client: Client): Promise<string> {
-        if (client._id === null) { client._id = genID('c') }
+        if (client._id !== null && !client.isDirty) { return client._id }
+
+        if (client._id === null) { client._id = util.genID('c') }
         client._rev = (await this.localDatabase.put(client.serialize())).rev
 
         client.clearDirty()
@@ -170,7 +151,9 @@ export default class Database {
     }
 
     async updatePatient(patient: Patient, options?: { addOwners: string[] }): Promise<string> {
-        if (patient._id === null) { patient._id = genID('p') }
+        if (patient._id !== null && !patient.isDirty) { return patient._id }
+
+        if (patient._id === null) { patient._id = util.genID('p') }
         patient._rev = (await this.localDatabase.put(patient.serialize())).rev
 
         // Add the patient's owners

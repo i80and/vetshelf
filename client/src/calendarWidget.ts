@@ -27,14 +27,12 @@ export class CalendarModel {
     events: Map<any, any>
     selected: moment.Moment
     daysInMonth: number
-    onchange: (d:moment.Moment)=>void
     _showing: moment.Moment
 
     constructor() {
         this.events = new Map<string, any>()
         this.selected = null
         this.showing = moment()
-        this.onchange = () => {}
 
         Object.seal(this)
     }

@@ -217,12 +217,10 @@ export class ViewModel {
     }
 
     async addAppointment(): Promise<void> {
-        const newVisit = Visit.emptyVisit()
+        const newVisit = this.selectedPatient.insertVisit()
         m.startComputation()
         try {
-            const patient = await this.database.insertVisit(this.selected.id, newVisit)
             this.appointmentEditor = new appointmentEditor.Model(newVisit)
-            this.results.refreshPatient(patient)
         } catch(err) {
             console.error(err)
         } finally {
@@ -233,11 +231,8 @@ export class ViewModel {
     async deleteAppointment(): Promise<void> {
         m.startComputation()
         try {
-            const patient = await this.database.getPatient(this.selected.id)
-            patient.visits = patient.visits.filter((v) => v.id != this.appointmentEditor.appointment.id)
+            this.selectedPatient.deleteVisit(this.appointmentEditor.appointment.id)
             this.appointmentEditor = null
-            await this.database.updatePatient(patient)
-            this.results.refreshPatient(patient)
         } catch (err) {
             console.error(err)
         } finally {
@@ -253,8 +248,7 @@ export class ViewModel {
         const newAppointment = editor.getNewAppointment()
         m.startComputation()
         try {
-            const patient = await this.database.updateVisit(newAppointment)
-            this.results.refreshPatient(patient)
+            this.selectedPatient.updateVisit(newAppointment)
         } catch(err) {
             console.error(err)
             m.endComputation()
@@ -513,8 +507,8 @@ function renderEditPatient() {
 
     if(vm.appointmentEditor) {
         children.push(appointmentEditor.view(vm.appointmentEditor, {
-            onsave: (m) => vm.updateAppointment(m),
-            ondelete: () => vm.deleteAppointment()
+            ondelete: () => vm.deleteAppointment(),
+            onedit: (model) => vm.updateAppointment(model)
         }))
     }
 
