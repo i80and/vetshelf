@@ -19,16 +19,6 @@ function genID(prefix: string): string {
     return `${prefix}-${str.join('')}`
 }
 
-class TaskIntervals {
-    static heartworm(lastVisit: moment.Moment): moment.Moment {
-        return lastVisit.clone().add(6, 'months')
-    }
-
-    static exam(lastVisit: moment.Moment): moment.Moment {
-        return TaskIntervals.heartworm(lastVisit)
-    }
-}
-
 // Dummy for PouchDB Map/Reduce functions
 const emit: any = null
 
@@ -108,7 +98,7 @@ export default class Database {
     async getPatient(id: string): Promise<Patient> {
         try {
             const rawPatient = await this.localDatabase.get(id)
-            return Patient.deserialize(rawPatient)
+            return Patient.deserialize(<any>rawPatient)
         } catch (err) {
             if (err.status === 404) {
                 throw util.keyError.error(`No such patient: "${id}"`)
@@ -124,6 +114,7 @@ export default class Database {
 
         patient.visits.push(visit)
         await this.localDatabase.put(patient.serialize())
+        patient.refreshDueDates()
         return patient
     }
 
@@ -141,6 +132,7 @@ export default class Database {
 
         patient.visits[visitIndex] = visit
         await this.updatePatient(patient)
+        patient.refreshDueDates()
         return patient
     }
 
@@ -199,7 +191,7 @@ export default class Database {
             endkey: 'c-\uffff',
             limit: 100 })
 
-        const clients = results.rows.map((doc) => Client.deserialize(doc))
+        const clients = results.rows.map((row) => Client.deserialize(row.doc))
         return this.populateResultsFromClients(clients)
     }
 

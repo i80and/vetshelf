@@ -3,8 +3,41 @@
 import * as util from './util'
 import Visit from './Visit'
 
+class TaskIntervals {
+    static get tasks() { return [ 'heartworm', 'exam' ] }
+
+    static task(taskName: string, lastVisit: moment.Moment): moment.Moment {
+        return (<any>TaskIntervals)[taskName](lastVisit)
+    }
+
+    static heartworm(lastVisit: moment.Moment): moment.Moment {
+        return lastVisit.clone().add(6, 'months')
+    }
+
+    static exam(lastVisit: moment.Moment): moment.Moment {
+        return TaskIntervals.heartworm(lastVisit)
+    }
+}
+
+type patientID = string
+
+interface SerializedPatient {
+    type: string,
+    _id: patientID,
+    _rev: string,
+    name: string,
+    sex: string,
+    species: string,
+    breed: string,
+    description: string,
+    note: string,
+    active: boolean
+    visits: any[]
+    due: { [s: string]: string }
+}
+
 export default class Patient {
-    _id: string
+    _id: patientID
     _rev: string
     private _name: string
     private _sex: string
@@ -18,7 +51,7 @@ export default class Patient {
     visits: Visit[]
     private dirty: Set<string>
 
-    constructor(id: string, options: any) {
+    constructor(id: patientID, options: any) {
         this._id = id
         this._rev = options._rev
         this._name = options.name || '(unnamed)'
@@ -36,13 +69,14 @@ export default class Patient {
         }
 
         this.visits = options.visits || []
+        this.refreshDueDates()
         this.dirty = new Set<string>()
 
         Object.seal(this)
     }
 
-    get id(): string { return this._id }
-    set id(val: string) { this._id = val }
+    get id(): patientID { return this._id }
+    set id(val: patientID) { this._id = val }
 
     get isDirty(): boolean { return this.dirty.size > 0 }
 
@@ -99,7 +133,7 @@ export default class Patient {
         this._sex = `${this.sex}${newVal}`
     }
 
-    dueByDate() {
+    dueByDate(): [moment.Moment, string[]][] {
         // First collapse periodicals due on the same date
         const dateMap = new Map<string, string[]>()
         for(let [name, date] of this._due) {
@@ -119,7 +153,41 @@ export default class Patient {
         this.dirty.clear()
     }
 
-    serialize() {
+    // Return the most recent Visit where the given task was performed
+    lastVisitWithTask(task: string): Visit {
+        return this.visits.filter((visit) => {
+            return visit.tasks.indexOf(task) >= 0
+        }).sort((a, b) => {
+            const diff = a.date.diff(b.date)
+            if (diff > 0) { return 1 }
+            else if (diff < 0) { return -1 }
+            return 0
+        })[0] || null
+    }
+
+    refreshDueDates(): void {
+        const dueDates = new Map<string, moment.Moment>()
+        for (let taskName of TaskIntervals.tasks) {
+            const lastVisit = this.lastVisitWithTask(taskName)
+            let due: moment.Moment
+            if (lastVisit === null) {
+                dueDates.set(taskName, moment())
+                continue
+            }
+
+            dueDates.set(taskName, TaskIntervals.task(taskName, lastVisit.date))
+        }
+
+        this._due = dueDates
+    }
+
+    serialize(): SerializedPatient {
+        this.refreshDueDates()
+        const dueDates: { [s: string]: string } = {}
+        for(let [taskName, dueDate] of this._due) {
+            dueDates[taskName] = dueDate.toISOString()
+        }
+
         return {
             type: 'patient',
             _id: this._id,
@@ -133,27 +201,17 @@ export default class Patient {
             active: this.active,
 
             visits: this.visits.map((v) => v.serialize()),
+            due: dueDates
         }
     }
 
-    static deserialize(data: any) {
+    static deserialize(data: SerializedPatient) {
         if (data.type !== 'patient') {
             throw util.valueError.error(`Not a patient instance: ${data.type}`)
         }
 
         data.visits = data.visits.map((v: any) => Visit.deserialize(v))
         const patient = new Patient(data._id, data)
-
-        const due = new Map<string, moment.Moment>()
-        for (let name in data.due) {
-            if (data.due[name] === null) {
-                due.set(name, null)
-            } else {
-                due.set(name, moment(data.due[name]))
-            }
-        }
-
-        patient._due = due
 
         return patient
     }

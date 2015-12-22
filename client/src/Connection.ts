@@ -120,7 +120,7 @@ export default class Connection {
 
     getPatients(ids: string[]) {
         return this.__send_message(['get-patients', ids]).then((results: {}[]) => {
-            return results.map((raw) => Patient.deserialize(raw))
+            return results.map((raw) => Patient.deserialize(<any>raw))
         })
     }
 
@@ -136,7 +136,7 @@ export default class Connection {
         }
 
         const rawPatient = await this.__send_message(['update-patient', patient.serialize()])
-        return Patient.deserialize(rawPatient)
+        return Patient.deserialize(<any>rawPatient)
     }
 
     async saveClient(client: Client): Promise<Client> {
