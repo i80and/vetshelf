@@ -519,13 +519,15 @@ function renderEditSelected() {
 export const view = function() {
     return m('section#search-page', [
         m('section#search-pane', [
-            m('input#search-bar', {
-                placeholder: 'What to search for?',
-                oninput: function() { vm.search(this.value) }
-            }),
-            m('div#add-client-button.small-button', {
-                title: 'Add a new client',
-                onclick: () => vm.addClient() }, m('span.fa.fa-plus')),
+            m('div', [
+                m('input#search-bar', {
+                    placeholder: 'What to search for?',
+                    oninput: function() { vm.search(this.value) }
+                }),
+                m('div#add-client-button.small-button', {
+                    title: 'Add a new client',
+                    onclick: () => vm.addClient() }, m('span.fa.fa-plus')),
+            ]),
             m('ul#search-results', vm.results.map((c: Client) => {
                 return renderClient(c)
             }))

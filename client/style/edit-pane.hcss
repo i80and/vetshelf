@@ -6,7 +6,6 @@
 }
 
 #edit-pane {
-    position: fixed;
     display: flex;
     flex-direction: row;
     width: 100%;

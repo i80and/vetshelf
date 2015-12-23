@@ -72,6 +72,7 @@ export function view(model: Model, options: IViewConfig={}) {
                     options.onedit(model)
                 },
                 type: 'number',
+                step: 'any',
                 value: model.weightKg() <= 0 ? '' : model.weightKg(),
                 placeholder: 'Weight (kg)'
             }),

@@ -1,5 +1,7 @@
 selector(#search-pane) {
     height: 100%;
+    display: flex;
+    flex-direction: column;
     /*background-color: rgba(200, 200, 200, 0.5);*/
 }
 
@@ -8,6 +10,8 @@ selector(#search-results) {
     flex-direction: column;
     padding: 0px;
     width: 500px;
+    overflow-y: scroll;
+    overflow-x: hidden;
 
     on(COMPACT)
         width: 250px;
