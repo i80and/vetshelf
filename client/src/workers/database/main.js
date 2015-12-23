@@ -48,7 +48,11 @@ class TextSearch {
         return localforage.setItem('lunr-index', index)
     }
 
-    debug() {
+    debug(record) {
+        if(record) {
+            return new Promise((resolve) => resolve(this.searchIndex.documentStore.get(record)))
+        }
+
         return localforage.getItem('lunr-index').then((rawIndex) => {
             let cacheSize = -1
             if(rawIndex) { cacheSize = JSON.parse(rawIndex).tokenStore.length }
@@ -57,6 +61,11 @@ class TextSearch {
                 cacheSize: cacheSize
             }
         })
+    }
+
+    clearCache() {
+        localforage.removeItem('lunr-index')
+        return new Promise((resolve) => resolve())
     }
 }
 

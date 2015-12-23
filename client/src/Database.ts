@@ -48,8 +48,12 @@ class TextSearch {
         return this.sendMessage('persist')
     }
 
-    debug(): Promise<void> {
-        return this.sendMessage('debug')
+    debug(record?: string): Promise<void> {
+        return this.sendMessage('debug', [record])
+    }
+
+    clearCache(): Promise<void> {
+        return this.sendMessage('clearCache')
     }
 
     private sendMessage(method: string, args?: any[]) {
@@ -257,6 +261,17 @@ export default class Database {
                 }
 
                 summary[destField].push(patientSummary[field])
+            }
+        }
+
+        // Lunr.js won't tokenize strings in arrays, so combine our array elements
+        for(let field in summary) {
+            if (!summary.hasOwnProperty(field)) {
+                continue
+            }
+
+            if (summary[field].join) {
+                summary[field] = summary[field].join(' ')
             }
         }
 

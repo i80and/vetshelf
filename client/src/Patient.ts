@@ -147,6 +147,7 @@ export default class Patient {
 
     set visits(visits: Visit[]) {
         this._visits = visits.slice()
+        this._visits.sort((a, b) => b.date.diff(a.date))
         Object.freeze(this._visits)
     }
 

@@ -39,11 +39,11 @@ export default class SearchResults {
     }
 
     getClient(id: string): Client {
-        return this.clientsIndex.get(id)
+        return this.clientsIndex.get(id) || null
     }
 
     getPatient(id: string): Patient {
-        return this.patients.get(id)
+        return this.patients.get(id) || null
     }
 
     map<T>(f: (c: Client)=>T) {
