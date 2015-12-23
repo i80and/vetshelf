@@ -260,7 +260,6 @@ export default class Database {
             }
         }
 
-        if(summary.name === 'Steve & Jenny Aldridge') { console.log(summary) }
         this.textSearch.update(summary)
     }
 
