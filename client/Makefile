@@ -17,7 +17,9 @@ SRC=./src/app.ts \
     ./src/util.ts \
     ./src/Visit.ts
 
-all: ./build/js/app.js ./build/index.html
+WORKER_DATABASE=./src/workers/database/main.js
+
+all: ./build/js/app.js ./build/index.html ./build/js/worker-search.js
 	install src/deps/*.js build/js/
 	rsync -ra style/fonts build/style/
 	cp index.html build/
@@ -32,6 +34,9 @@ build:
 	./node_modules/.bin/tsc --noImplicitAny --target es6 --outDir ./.obj $(SRC)
 	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify --blacklist regenerator ]
 
+./build/js/worker-search.js: node_modules build .obj $(WORKER_DATABASE)
+	./node_modules/.bin/browserify -o $@ -e $(WORKER_DATABASE) -t [ babelify --blacklist regenerator ]
+
 ./build/index.html: index.html ./build/style/main.css ./build/style/normalize.css
 	cp index.html $@
 
@@ -44,6 +49,7 @@ build:
 
 lint:
 	./node_modules/.bin/tslint $(SRC)
+	./node_modules/.bin/jshint -c .jshintrc $(WORKER_DATABASE)
 
 node_modules: package.json
 	npm update

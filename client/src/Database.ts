@@ -1,7 +1,6 @@
 /// <reference path="typings/moment/moment.d.ts" />
 /// <reference path="typings/pouchdb.d.ts" />
 /// <reference path="typings/localforage.d.ts" />
-/// <reference path="typings/lunr.d.ts" />
 
 import SearchResults from './SearchResults'
 import Client from './Client'
@@ -11,50 +10,60 @@ import * as util from './util'
 // Dummy for PouchDB Map/Reduce functions
 const emit: any = null
 
-export const noIndexError = util.baseError.derive('NoIndexError')
-
 class TextSearch {
-    private searchIndex: lunr.Index
+    private messageID: number
+    private pending: Map<number, [(result: any)=>void, (err: any)=>void]>
+    private worker: Worker
 
     constructor() {
-        this.searchIndex = lunr(function() {
-            this.ref('_id')
-            this.field('name', { boost: 10 })
-            this.field('address')
-            this.field('email')
-            this.field('note')
-            this.field('pet_name', { boost: 2 })
-            this.field('pet_species')
-            this.field('pet_breed')
-            this.field('pet_sex')
-            this.field('pet_description')
-            this.field('pet_note')
-        })
-    }
+        this.messageID = 0
+        this.pending = new Map()
+        this.worker = new Worker('./js/worker-search.js')
+        this.worker.onmessage = (e) => {
+            const [resolve, reject] = this.pending.get(e.data.id)
+            this.pending.delete(e.data.id)
 
-    search(query: string) {
-        return this.searchIndex.search(query)
-    }
-
-    add(doc: any) {
-        this.searchIndex.add(doc)
-    }
-
-    update(doc: any) {
-        this.searchIndex.update(doc)
-    }
-
-    async load(): Promise<void> {
-        const rawIndex = await localforage.getItem('lunr-index')
-        if(!rawIndex) {
-            throw noIndexError.error('No index to load')
+            if(e.data.error) { return reject(e.data.error) }
+            return resolve(e.data.result)
         }
-        this.searchIndex = lunr.Index.load(JSON.parse(rawIndex))
     }
 
-    async persist(): Promise<void> {
-        const index = JSON.stringify(this.searchIndex.toJSON())
-        await localforage.setItem('lunr-index', index)
+    search(query: string): Promise<any> {
+        return this.sendMessage('search', [query])
+    }
+
+    add(doc: any): Promise<void> {
+        return this.sendMessage('add', [doc])
+    }
+
+    update(doc: any): Promise<void> {
+        return this.sendMessage('update', [doc])
+    }
+
+    load(): Promise<void> {
+        return this.sendMessage('load')
+    }
+
+    persist(): Promise<void> {
+        return this.sendMessage('persist')
+    }
+
+    debug(): Promise<void> {
+        return this.sendMessage('debug')
+    }
+
+    private sendMessage(method: string, args?: any[]) {
+        const messageID = this.messageID++
+        const promise = new Promise<any>((resolve, reject) => {
+            this.pending.set(messageID, [resolve, reject])
+        })
+
+        this.worker.postMessage({
+            id: messageID,
+            args: [method].concat(args)
+        })
+
+        return promise
     }
 }
 
@@ -251,6 +260,7 @@ export default class Database {
             }
         }
 
+        if(summary.name === 'Steve & Jenny Aldridge') { console.log(summary) }
         this.textSearch.update(summary)
     }
 
@@ -350,7 +360,7 @@ export default class Database {
     }
 
     async fullTextSearch(query: string): Promise<SearchResults> {
-        const results = this.textSearch.search(query).slice(0, 25)
+        const results = (await this.textSearch.search(query)).slice(0, 25)
         const clientIDs = results.map((r: any) => r.ref)
 
         const clients = await this.getClients(clientIDs)
