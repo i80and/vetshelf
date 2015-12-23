@@ -15,6 +15,12 @@ export default class PhoneInfo {
             diff.note === undefined? this.note : diff.note)
     }
 
+    pureNumber(): string {
+        return this.number.split('ext')[0]
+                          .match(/[0-9+#x]/g)
+                          .join('')
+    }
+
     serialize() {
         return {
             number: this.number,

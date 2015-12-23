@@ -7,6 +7,7 @@ interface ISummary {
     _id: string,
     name: string,
     address: string,
+    phone: string,
     email: string,
     note: string,
 }
@@ -139,6 +140,7 @@ export default class Client {
             _id: this._id,
             name: this.name,
             address: this.address,
+            phone: this._phone.map((info) => info.pureNumber()).join(' '),
             email: this.email,
             note: this.note,
         }

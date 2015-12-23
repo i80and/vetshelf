@@ -9,6 +9,30 @@ export function fromNowMinimum(m: moment.Moment): string {
     return m.from(now)
 }
 
+export class Timeout {
+    public promise: Promise<string>
+    public timeoutID: number
+    private resolve: (status:string)=>void
+
+    constructor(ms: number) {
+        this.promise = new Promise<string>((resolve) => {
+            this.resolve = resolve
+            this.timeoutID = window.setTimeout(() => {
+                return resolve('')
+            }, ms)
+        })
+    }
+
+    cancel(): void {
+        window.clearTimeout(this.timeoutID)
+        this.resolve('canceled')
+    }
+}
+
+export function timeout(ms: number): Timeout {
+    return new Timeout(ms)
+}
+
 export function genID(prefix: string): string {
     const buf = new Uint32Array(8)
     const str: string[] = []

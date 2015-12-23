@@ -9,6 +9,7 @@ class TextSearch {
             this.field('name', { boost: 10 })
             this.field('address')
             this.field('email')
+            this.field('phone')
             this.field('note')
             this.field('pet_name', { boost: 2 })
             this.field('pet_species')

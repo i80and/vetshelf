@@ -15,7 +15,7 @@ import * as util from './util'
 const PAUSE_INTERVAL_MS = 200
 
 export class ViewModel {
-    private timeoutID: number
+    private timeout: util.Timeout
     results: SearchResults
     private database: Database
     appointmentEditor: appointmentEditor.Model
@@ -24,7 +24,7 @@ export class ViewModel {
     private selectedType: string
 
     constructor(database: Database) {
-        this.timeoutID = -1
+        this.timeout = null
         this.results = new SearchResults([])
         this.database = database
         this.appointmentEditor = null
@@ -106,17 +106,15 @@ export class ViewModel {
         this.selected = null
 
         try {
-            this.results = await this.database.search(query)
-
             // Don't search unless there's been a pause
-            if(this.timeoutID >= 0) {
-                window.clearTimeout(this.timeoutID)
+            if(this.timeout) {
+                this.timeout.cancel()
             }
 
-            this.timeoutID = window.setTimeout(async () => {
-                this.timeoutID = -1
-                await this.__search(query)
-            }, PAUSE_INTERVAL_MS)
+            this.timeout = util.timeout(PAUSE_INTERVAL_MS)
+            if((await this.timeout.promise) === 'canceled') { return }
+            this.timeout = null
+            this.results = await this.database.search(query)
         } catch(err) {
             console.error(err)
         } finally {
@@ -280,14 +278,6 @@ export class ViewModel {
             console.error(msg)
             m.endComputation()
         })
-    }
-
-    async __search(query: string): Promise<void> {
-        try {
-            this.results = (await this.database.search(query))
-        } catch(err) {
-            console.error(err)
-        }
     }
 }
 
