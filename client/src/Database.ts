@@ -394,6 +394,9 @@ export default class Database {
                 rawClient._id = null
                 rawClient.pets = rawClient.pets.map((id: string) => patientIDMap.get(id))
                                                .filter((id: string) => id !== undefined && id !== null)
+                rawClient.phone = rawClient.phone.map((phone: [string, string]) => {
+                    return { number: phone[0], note: phone[1] }
+                })
                 const client = Client.deserialize(rawClient)
                 await this.updateClient(client)
             } catch(err) {

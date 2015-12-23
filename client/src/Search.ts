@@ -355,7 +355,7 @@ function renderEditPhoneNumbers() {
         return m('div', [
             m('input[type=tel]', {
                 placeholder: 'Phone Number',
-                pattern: '[0-9\-+ #ext.]+',
+                pattern: '[0-9\-()+ #ext.:]+',
                 value: phoneInfo.number,
                 oninput: function() {
                     vm.selectedClient.savePhone(phoneInfo, phoneInfo.with({ number: this.value }))
