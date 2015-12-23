@@ -3,6 +3,8 @@
 // Definitions by: Andrew Aldridge
 
 interface PouchResponse {
+    [index: string]: any
+
     ok?: boolean
     rev?: string
     id?: string
@@ -43,15 +45,11 @@ interface QueryOptions {
     stale?: string
 }
 
-interface SearchOptions {
-    query?: string,
-    fields: any
-    limit?: number
-    skip?: number
-    highlighting?: boolean
-    filter?: (doc: any)=>boolean
+interface IChangesOptions {
     include_docs?: boolean
-    mm?: number
+    filter?: string
+    live: boolean
+    since: string
 }
 
 declare class PouchDB {
@@ -66,7 +64,5 @@ declare class PouchDB {
     remove(doc: any): Promise<PouchResponse>
     bulkDocs(docs: any[]): Promise<PouchResponse>
     compact(): Promise<PouchResponse>
-
-    // The quick-search plugin
-    search(options: SearchOptions): Promise<any>
+    changes(options?: IChangesOptions): any
 }

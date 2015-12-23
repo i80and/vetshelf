@@ -20,6 +20,22 @@ export function genID(prefix: string): string {
     return `${prefix}-${str.join('')}`
 }
 
+export function batchMap<T>(data: T[], batchSize: number, f: (x: T[])=>void) {
+    let batch: T[] = []
+    for (let element of data) {
+        batch.push(element)
+
+        if (batch.length > batchSize) {
+            f(batch)
+            batch = []
+        }
+    }
+
+    if (batch) {
+        f(batch)
+    }
+}
+
 export class SimpleError {
     name: string
     private errors: Symbol[]

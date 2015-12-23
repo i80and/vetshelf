@@ -7,6 +7,7 @@ SRC=./src/app.ts \
     ./src/PhoneInfo.ts \
     ./src/Connection.ts \
     ./src/Login.ts \
+    ./src/Import.ts \
     ./src/optionsWidget.ts \
     ./src/Patient.ts \
     ./src/Search.ts \

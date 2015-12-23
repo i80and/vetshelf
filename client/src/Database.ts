@@ -1,5 +1,6 @@
 /// <reference path="typings/moment/moment.d.ts" />
 /// <reference path="typings/pouchdb.d.ts" />
+/// <reference path="typings/lunr.d.ts" />
 
 import SearchResults from './SearchResults'
 import Client from './Client'
@@ -11,15 +12,39 @@ const emit: any = null
 
 export default class Database {
     private localDatabase: PouchDB
+    private configDatabase: PouchDB
+    private searchIndex: lunr.Index
 
     constructor() {
+        let w: any = window
+        w.db = this
+
         this.localDatabase = new PouchDB('vetshelf')
+        this.configDatabase = new PouchDB('vetshelf-local')
+        this.searchIndex = lunr(function() {
+            this.ref('_id')
+            this.field('name', { boost: 10 })
+            this.field('address')
+            this.field('email')
+            this.field('note')
+            this.field('pet_name', { boost: 2 })
+            this.field('pet_species')
+            this.field('pet_breed')
+            this.field('pet_sex')
+            this.field('pet_description')
+            this.field('pet_note')
+        })
     }
 
-    async ensureIndexes(): Promise<void> {
+    private async ensureDesignDocument(): Promise<void> {
         const index = {
             _id: '_design/index',
             _rev: <string>undefined,
+            filters: {
+                'replication-changes': function(doc: any) {
+                    return ['client', 'patient'].indexOf(doc.type) >= 0
+                }.toString()
+            },
             views: {
                 owners: {
                     map: function(doc: any) {
@@ -42,13 +67,96 @@ export default class Database {
 
         try {
             const existing: any = await this.localDatabase.get(index._id)
-            if(existing.views === index.views) { return }
+            if(JSON.stringify(existing.views) === JSON.stringify(index.views)) { return }
             if (existing._rev) { index._rev = existing._rev }
         } catch (err) {
             if (err.status !== 404) { throw err }
         }
 
+        console.log('Installing new design document')
         await this.localDatabase.put(index)
+    }
+
+    async ensureIndexes(): Promise<void> {
+        await this.ensureDesignDocument()
+
+        console.log('Generating indexes')
+        const t1 = moment()
+
+        const promises: Promise<any>[] = []
+        promises.push(this.localDatabase.query('index/owners'))
+        promises.push(this.localDatabase.query('index/upcoming'))
+
+        const result = await this.localDatabase.allDocs({
+            include_docs: true,
+            startkey: 'c-',
+            endkey: 'c-\uffff' })
+
+        for(let row of result.rows) {
+            try {
+                const client = Client.deserialize(row.doc)
+                promises.push(this.updateSearchDocument(client))
+            } catch(err) {
+                console.error(err)
+            }
+        }
+
+        await Promise.all(promises)
+        await this.persistSearchIndex()
+
+        const t2 = moment()
+        console.log(`Took ${t2.diff(t1, 'seconds')}s to build search index`)
+    }
+
+    async initialize(): Promise<void> {
+        // Check if we have a cached search index, and if so, load it
+        try {
+            const doc = await this.configDatabase.get('search-index')
+            this.searchIndex = lunr.Index.load(JSON.parse(doc['index']))
+
+            await this.ensureDesignDocument()
+        } catch(err) {
+            await this.ensureIndexes()
+        }
+
+        // Keep the search index up to date
+        this.localDatabase.changes({
+            include_docs: true,
+            live: true,
+            since: 'now',
+            filter: 'index/replication-changes'
+        }).on('change', async (results: any): Promise<void> => {
+            const doc = results.doc
+            if (doc.type === 'client') {
+                const client = Client.deserialize(doc)
+                await this.updateSearchDocument(client)
+            } else if (doc.type === 'patient') {
+                const patient = Patient.deserialize(doc)
+                const owners = await this.getOwners([patient.id])
+                for (let owner of owners) {
+                    await this.updateSearchDocument(owner)
+                }
+            }
+
+            await this.persistSearchIndex()
+        })
+    }
+
+    async persistSearchIndex(): Promise<void> {
+        const index = JSON.stringify(this.searchIndex.toJSON())
+
+        try {
+            const doc: any = await this.configDatabase.get('search-index')
+            doc.index = index
+            await this.configDatabase.put(doc)
+        } catch (err) {
+            if (err.status === 404) {
+                const doc = { _id: 'search-index', index: index }
+                await this.configDatabase.put(doc)
+            } else {
+                console.error(err)
+            }
+        }
     }
 
     async getClients(ids: string[]): Promise<Client[]> {
@@ -109,36 +217,26 @@ export default class Database {
     }
 
     async updateSearchDocument(client: Client): Promise<void> {
-        const summary: any = {}
+        const summary: any = client.summarize()
         const patients = await this.getPatients(client.pets)
         const patientSummaries = patients.map((p) => p.summarize())
 
-        summary._id = `s-${client._id.replace('c-', '')}`
-        summary.type = 'search'
-        summary.client = client.summarize()
-        summary.pets = {}
         for(let patientSummary of patientSummaries) {
             for(let field in patientSummary) {
                 if (!patientSummary.hasOwnProperty(field)) {
                     continue
                 }
 
-                if(summary.pets[field] === undefined) {
-                    summary.pets[field] = []
+                const destField = 'pet_' + field
+                if(summary[destField] === undefined) {
+                    summary[destField] = []
                 }
 
-                summary.pets[field].push(patientSummary[field])
+                summary[destField].push(patientSummary[field])
             }
         }
 
-        try {
-            const existing: any = await this.localDatabase.get(summary._id)
-            if (existing._rev) { summary._rev = existing._rev }
-        } catch (err) {
-            if (err.status !== 404) { throw err }
-        }
-
-        await this.localDatabase.put(summary)
+        this.searchIndex.update(summary)
     }
 
     async updateClient(client: Client): Promise<string> {
@@ -146,8 +244,6 @@ export default class Database {
 
         if (client._id === null) { client._id = util.genID('c') }
         client._rev = (await this.localDatabase.put(client.serialize())).rev
-
-        await this.updateSearchDocument(client)
 
         client.clearDirty()
         return client.id
@@ -168,11 +264,6 @@ export default class Database {
             })
 
             await this.localDatabase.bulkDocs(updateDocs)
-        }
-
-        const owners = await this.getOwners([patient.id])
-        for(let owner of owners) {
-            await this.updateSearchDocument(owner)
         }
 
         patient.clearDirty()
@@ -243,26 +334,56 @@ export default class Database {
         return new SearchResults(clients, patients, matchedPatients)
     }
 
+    async fullTextSearch(query: string): Promise<SearchResults> {
+        const results = this.searchIndex.search(query).slice(0, 25)
+        const clientIDs = results.map((r: any) => r.ref)
+
+        const clients = await this.getClients(clientIDs)
+
+        return this.populateResultsFromClients(clients)
+    }
+
     async search(query: string): Promise<SearchResults> {
         if(query === '' || query === 'upcoming') {
             return await this.showUpcoming()
         } else if (query === 'random') {
             return await this.showRandom()
+        } else {
+            return await this.fullTextSearch(query)
+        }
+    }
+
+    async importData(data: { clients: any[], patients: any[] }): Promise<void> {
+        const patientIDMap = new Map<string, string>()
+        for(let rawPatient of data.patients) {
+            try {
+                rawPatient.type = 'patient'
+                rawPatient._id = null
+                rawPatient.visits = rawPatient.visits.map((v: any) => {
+                    v.id = util.genID('v')
+                    v.kg = v.weight / 1000
+                    v.tasks = []
+                    return v
+                })
+                const patient = Patient.deserialize(rawPatient)
+                await this.updatePatient(patient)
+                patientIDMap.set(rawPatient.id, patient._id)
+            } catch(err) {
+                console.error(err)
+            }
         }
 
-        // Full text search
-        const result = await this.localDatabase.search({
-            query: query,
-            include_docs: true,
-            limit: 100,
-            fields: ['client.name', 'client.address', 'client.email', 'client.note',
-                     'pets.name', 'pets.species', 'pets.breed', 'pets.sex', 'pets.description', 'pets.note'],
-            filter: function(doc: any) { return doc.type === 'search' }
-        })
-
-        const clientIDs = result.rows.map((row: any) => row.doc.client._id)
-        const clients = await this.getClients(clientIDs)
-
-        return this.populateResultsFromClients(clients)
+        for(let rawClient of data.clients) {
+            try {
+                rawClient.type = 'client'
+                rawClient._id = null
+                rawClient.pets = rawClient.pets.map((id: string) => patientIDMap.get(id))
+                                               .filter((id: string) => id !== undefined && id !== null)
+                const client = Client.deserialize(rawClient)
+                await this.updateClient(client)
+            } catch(err) {
+                console.error(err)
+            }
+        }
     }
 }

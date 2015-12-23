@@ -1,4 +1,5 @@
 import * as Search from './Search'
+import * as Import from './Import'
 import * as Login from './Login'
 
 document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
@@ -6,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
 
     m.route(body, '/search', {
         '/login': Login,
+        '/import': Import,
         '/search': Search,
     })
 })

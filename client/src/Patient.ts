@@ -197,7 +197,10 @@ export default class Patient {
 
         // Reconvert the string dates back to date objects, and sort by date
         return Array.from(dateMap.entries()).map((kv) => {
-            const result: [moment.Moment, string[]] = [moment(kv[0]), kv[1]]
+            const result: [moment.Moment, string[]] = [moment(kv[0], moment.ISO_8601), kv[1]]
+            if(!result[0].isValid()) {
+                throw util.valueError.error(`Error parsing date string: ${kv[0]}`)
+            }
             return result
         }).sort((a, b) => a[0].unix() - b[0].unix())
     }

@@ -1,8 +1,5 @@
 /// <reference path="typings/mithril/mithril.d.ts" />
 
-// const Connection = require('./Connection')
-// const util = require('./util')
-
 export class ViewModel {
     serverAddress: (value?: string) => string
     password: (value?: string) => string

@@ -1,5 +1,7 @@
 /// <reference path="typings/moment/moment.d.ts" />
 
+import * as util from './util'
+
 export default class Visit {
     id: string
     _date: moment.Moment
@@ -29,7 +31,6 @@ export default class Visit {
         if(fields.note !== undefined) { result.note = fields.note }
         return result
     }
-
 
     get date() { return this._date }
     set date(val) {
@@ -72,7 +73,10 @@ export default class Visit {
     }
 
     static deserialize(data: any): Visit {
-        const date = moment(data.date)
+        const date = moment(data.date, moment.ISO_8601)
+        if (!date.isValid()) {
+            throw util.valueError.error(`Error parsing date string: ${data.date}`)
+        }
         return new Visit(data.id, date, data.tasks, data.kg, data.note)
     }
 
