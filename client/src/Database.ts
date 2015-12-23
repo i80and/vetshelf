@@ -1,5 +1,6 @@
 /// <reference path="typings/moment/moment.d.ts" />
 /// <reference path="typings/pouchdb.d.ts" />
+/// <reference path="typings/localforage.d.ts" />
 /// <reference path="typings/lunr.d.ts" />
 
 import SearchResults from './SearchResults'
@@ -10,17 +11,12 @@ import * as util from './util'
 // Dummy for PouchDB Map/Reduce functions
 const emit: any = null
 
-export default class Database {
-    private localDatabase: PouchDB
-    private configDatabase: PouchDB
+export const noIndexError = util.baseError.derive('NoIndexError')
+
+class TextSearch {
     private searchIndex: lunr.Index
 
     constructor() {
-        let w: any = window
-        w.db = this
-
-        this.localDatabase = new PouchDB('vetshelf')
-        this.configDatabase = new PouchDB('vetshelf-local')
         this.searchIndex = lunr(function() {
             this.ref('_id')
             this.field('name', { boost: 10 })
@@ -34,6 +30,44 @@ export default class Database {
             this.field('pet_description')
             this.field('pet_note')
         })
+    }
+
+    search(query: string) {
+        return this.searchIndex.search(query)
+    }
+
+    add(doc: any) {
+        this.searchIndex.add(doc)
+    }
+
+    update(doc: any) {
+        this.searchIndex.update(doc)
+    }
+
+    async load(): Promise<void> {
+        const rawIndex = await localforage.getItem('lunr-index')
+        if(!rawIndex) {
+            throw noIndexError.error('No index to load')
+        }
+        this.searchIndex = lunr.Index.load(JSON.parse(rawIndex))
+    }
+
+    async persist(): Promise<void> {
+        const index = JSON.stringify(this.searchIndex.toJSON())
+        await localforage.setItem('lunr-index', index)
+    }
+}
+
+export default class Database {
+    private localDatabase: PouchDB
+    private textSearch: TextSearch
+
+    constructor() {
+        let w: any = window
+        w.db = this
+
+        this.localDatabase = new PouchDB('vetshelf')
+        this.textSearch = new TextSearch()
     }
 
     private async ensureDesignDocument(): Promise<void> {
@@ -84,8 +118,8 @@ export default class Database {
         const t1 = moment()
 
         const promises: Promise<any>[] = []
-        promises.push(this.localDatabase.query('index/owners'))
-        promises.push(this.localDatabase.query('index/upcoming'))
+        promises.push(this.localDatabase.query('index/owners', {limit: 0}))
+        promises.push(this.localDatabase.query('index/upcoming', {limit: 0}))
 
         const result = await this.localDatabase.allDocs({
             include_docs: true,
@@ -102,7 +136,7 @@ export default class Database {
         }
 
         await Promise.all(promises)
-        await this.persistSearchIndex()
+        await this.textSearch.persist()
 
         const t2 = moment()
         console.log(`Took ${t2.diff(t1, 'seconds')}s to build search index`)
@@ -111,9 +145,7 @@ export default class Database {
     async initialize(): Promise<void> {
         // Check if we have a cached search index, and if so, load it
         try {
-            const doc = await this.configDatabase.get('search-index')
-            this.searchIndex = lunr.Index.load(JSON.parse(doc['index']))
-
+            await this.textSearch.load()
             await this.ensureDesignDocument()
         } catch(err) {
             await this.ensureIndexes()
@@ -138,25 +170,8 @@ export default class Database {
                 }
             }
 
-            await this.persistSearchIndex()
+            await this.textSearch.persist()
         })
-    }
-
-    async persistSearchIndex(): Promise<void> {
-        const index = JSON.stringify(this.searchIndex.toJSON())
-
-        try {
-            const doc: any = await this.configDatabase.get('search-index')
-            doc.index = index
-            await this.configDatabase.put(doc)
-        } catch (err) {
-            if (err.status === 404) {
-                const doc = { _id: 'search-index', index: index }
-                await this.configDatabase.put(doc)
-            } else {
-                console.error(err)
-            }
-        }
     }
 
     async getClients(ids: string[]): Promise<Client[]> {
@@ -236,7 +251,7 @@ export default class Database {
             }
         }
 
-        this.searchIndex.update(summary)
+        this.textSearch.update(summary)
     }
 
     async updateClient(client: Client): Promise<string> {
@@ -335,7 +350,7 @@ export default class Database {
     }
 
     async fullTextSearch(query: string): Promise<SearchResults> {
-        const results = this.searchIndex.search(query).slice(0, 25)
+        const results = this.textSearch.search(query).slice(0, 25)
         const clientIDs = results.map((r: any) => r.ref)
 
         const clients = await this.getClients(clientIDs)
