@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "author": "Andrew Aldridge <i80and@foxquill.com>",
   "dependencies": {
-    "babel": "6.1",
     "babelify": "6.4",
     "browserify": "12.0",
     "typescript": "1.7",
