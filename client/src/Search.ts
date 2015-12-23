@@ -203,13 +203,19 @@ export class ViewModel {
 
     selectClient(clientID: string): Promise<Client> {
         return this.__selectRecord(clientID, (id: string) => {
-            return this.database.getClient(id)
+            return this.database.getClient(id).then((client) => {
+                this.results.refreshClient(client)
+                return client
+            })
         })
     }
 
     selectPatient(patientID: string): Promise<Patient> {
         return this.__selectRecord(patientID, (id: string) => {
-            return this.database.getPatient(id)
+            return this.database.getPatient(id).then((patient) => {
+                this.results.refreshPatient(patient)
+                return patient
+            })
         })
     }
 
@@ -262,7 +268,7 @@ export class ViewModel {
         return null
     }
 
-    __selectRecord(id: string, getter: (id:string)=>any) {
+    __selectRecord(id: string, getter: (id:string)=>Promise<Client|Patient>) {
         m.startComputation()
         this.appointmentEditor = null
         return getter(id).then((record: Client|Patient) => {
