@@ -388,8 +388,10 @@ function renderEditClient() {
                 placeholder: 'Name',
                 value: vm.selected.name,
                 oninput: function() { vm.selected.name = this.value } }),
-            m('input', {
+            m('textarea', {
                 placeholder: 'Address',
+                rows: 3,
+                spellcheck: 'false',
                 value: vm.selectedClient.address,
                 oninput: function() { vm.selectedClient.address = this.value } }),
             m('input[type=email]', {
@@ -400,7 +402,7 @@ function renderEditClient() {
             renderEditPhoneNumbers(),
             m('textarea', {
                 placeholder: 'Notes',
-                rows: 5,
+                rows: 6,
                 value: vm.selected.note,
                 oninput: function() { vm.selected.note = this.value } })
             ])
