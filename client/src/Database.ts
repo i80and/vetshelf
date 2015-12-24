@@ -7,6 +7,8 @@ import Client from './Client'
 import Patient from './Patient'
 import * as util from './util'
 
+const DEFAULT_LIMIT = 50
+
 // Dummy for PouchDB Map/Reduce functions
 const emit: any = null
 
@@ -335,7 +337,7 @@ export default class Database {
             include_docs: true,
             startkey: 'c-',
             endkey: 'c-\uffff',
-            limit: 100 })
+            limit: DEFAULT_LIMIT })
 
         const clients = results.rows.map((row) => Client.deserialize(row.doc))
         return this.populateResultsFromClients(clients)
@@ -345,7 +347,7 @@ export default class Database {
         const results = await this.localDatabase.query('index/upcoming', {
             include_docs: true,
             startkey: moment().toISOString(),
-            limit: 100
+            limit: DEFAULT_LIMIT
         })
 
         const matchedPatients = new Set<string>()
@@ -374,7 +376,7 @@ export default class Database {
     }
 
     async fullTextSearch(query: string): Promise<SearchResults> {
-        const results = (await this.textSearch.search(query)).slice(0, 25)
+        const results = (await this.textSearch.search(query)).slice(0, DEFAULT_LIMIT)
         const clientIDs = results.map((r: any) => r.ref)
 
         const clients = await this.getClients(clientIDs)
