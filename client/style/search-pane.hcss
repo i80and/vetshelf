@@ -21,7 +21,6 @@ selector(#search-results) {
 selector(#search-results > li) {
     display: flex;
     flex-direction: row;
-    min-height: 140px;
     transition: margin-left 0.25s;
 }
 
@@ -80,4 +79,8 @@ selector(#search-results .preferred) {
 selector(#search-results .fa.fa-user) {
     width: 30px;
     text-align: center;
+}
+
+selector(#search-results .result-wrapper) {
+    min-height: 140px;
 }

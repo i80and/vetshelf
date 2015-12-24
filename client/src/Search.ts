@@ -308,7 +308,7 @@ function renderClient(client: Client) {
             class: vm.isSelected(client)? 'active' : ''
         }, [
         m('div.fa.fa-user'),
-        m('div', [
+        m('div.result-wrapper', [
             m('div.client-info', { onclick: () => vm.selectClient(client.id) }, [
                 m('div', client.name),
                 m('div', client.address),
