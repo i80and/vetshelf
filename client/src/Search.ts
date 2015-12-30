@@ -266,18 +266,19 @@ export class ViewModel {
         return null
     }
 
-    __selectRecord(id: string, getter: (id:string)=>Promise<Client|Patient>) {
-        m.startComputation()
+    async __selectRecord(id: string, getter: (id: string) => Promise<Client | Patient>): Promise<Client | Patient> {
         this.appointmentEditor = null
-        return getter(id).then((record: Client|Patient) => {
+
+        try {
+            const record = await getter(id)
             this.selected = record
-            m.endComputation()
 
             return record
-        }).catch((msg: any) => {
-            console.error(msg)
+        } catch(err) {
+            console.error(err)
+        } finally {
             m.endComputation()
-        })
+        }
     }
 }
 
@@ -412,6 +413,19 @@ function renderEditClient() {
 function renderEditPatient() {
     const now = moment()
 
+    const rabiesVisit = vm.selectedPatient.lastVisitWithTask('rabies')
+    const rabiesCaption = (rabiesVisit && rabiesVisit.rabiesTag())? rabiesVisit.rabiesTag() : 'No rabies tag set'
+    const rabiesLink = m('a', {
+        href: '#',
+        onclick: () => {
+            if (rabiesVisit) {
+                vm.selectAppointment(rabiesVisit)
+            } else {
+                vm.addAppointment()
+            }
+        }
+    }, rabiesCaption)
+
     const children = [
         m('div#record-pane', [
             m('div.tool-bar', [
@@ -450,6 +464,7 @@ function renderEditPatient() {
                 placeholder: 'Physical Description',
                 value: vm.selectedPatient.description,
                 oninput: function() { vm.selectedPatient.description = this.value } }),
+            rabiesLink,
             m('textarea', {
                 placeholder: 'Notes',
                 rows: 5,

@@ -9,6 +9,15 @@
     justify-content: space-between;
 }
 
-.appointment-editor-widget input {
+.appointment-editor-widget input,
+.appointment-editor-widget textarea {
     width: 100%;
+}
+
+.appointment-editor-widget .condensed-entry-list > div > *:first-child {
+    width: 9rem;
+}
+
+.appointment-editor-widget .condensed-entry-list > div > * {
+    width: 6rem;
 }

@@ -4,26 +4,22 @@ import * as util from './util'
 
 export default class Visit {
     id: string
-    _date: moment.Moment
-    _tasks: string[]
-    _weightKg: number
-    _note: string
+    private _date: moment.Moment
+    private _tasks: { [index: string]: Visit.ITask }
+    private _weightKg: number
+    private _note: string
 
-    private dirty: Set<string>
-
-    constructor(id: string, date: moment.Moment, tasks: string[], weightKg: number, note: string) {
+    constructor(id: string, date: moment.Moment, tasks: { [index: string]: Visit.ITask }, weightKg: number, note: string) {
         this.id = id
         this._date = date || moment()
-        this._tasks = tasks || []
+        this._tasks = tasks || {}
         this._weightKg = weightKg || 0.0
         this._note = note || ''
 
-        this.dirty = new Set<string>()
-
-        Object.freeze(this.tasks)
+        Object.freeze(this._tasks)
     }
 
-    with(fields: {date?: moment.Moment, note?: string, tasks?: string[], weightKg?: number}): Visit {
+    with(fields: { date?: moment.Moment, note?: string, tasks?: Visit.ITask[], weightKg?: number }): Visit {
         const result = new Visit(this.id, this.date, this.tasks, this.weightKg, this.note)
         if(fields.date !== undefined) { result.date = fields.date }
         if(fields.tasks !== undefined) { result.tasks = fields.tasks }
@@ -34,41 +30,63 @@ export default class Visit {
 
     get date() { return this._date }
     set date(val) {
-        this.dirty.add('date')
         this._date = val
     }
 
-    get tasks() { return this._tasks }
+    get tasks(): Visit.ITask[] {
+        const tasks: Visit.ITask[] = []
+        for(let key in this._tasks) {
+            if(!this._tasks.hasOwnProperty(key)) { continue }
+            tasks.push(this._tasks[key])
+        }
+
+        return tasks
+    }
+
     set tasks(val) {
-        this.dirty.add('tasks')
-        this._tasks = val
+        const newTasks: { [index: string]: Visit.ITask } = {}
+        for(let task of val) {
+            newTasks[task.name] = task
+        }
+
+        this._tasks = newTasks
     }
 
     get weightKg(): number { return this._weightKg }
     set weightKg(val: number) {
-        this.dirty.add('kg')
         this._weightKg = val
     }
 
     get note() { return this._note }
     set note(val) {
-        this.dirty.add('note')
         this._note = val
     }
 
-    clearDirty() {
-        this.dirty.clear()
+    get cost() {
+        return this.tasks.reduce((previousValue, currentValue) => {
+            return previousValue + Number(currentValue.charge)
+        }, 0)
+    }
+
+    task(name: string): Visit.ITask {
+        return this._tasks[name] || null
+    }
+
+    rabiesTag(): string {
+        if (this._tasks['rabies']) {
+            return this._tasks['rabies']['rabiesTag'] || ''
+        }
+
+        return ''
     }
 
     serialize() {
         return {
             id: this.id,
             date: this.date.toISOString(),
-            tasks: this.tasks,
+            tasks: this._tasks,
             kg: this.weightKg,
-            note: this.note,
-
-            dirty: Array.from(this.dirty)
+            note: this.note
         }
     }
 
@@ -77,10 +95,37 @@ export default class Visit {
         if (!date.isValid()) {
             throw util.valueError.error(`Error parsing date string: ${data.date}`)
         }
-        return new Visit(data.id, date, data.tasks, data.kg, data.note)
+
+        // Validate the tasks
+        const tasks: { [index: string]: Visit.ITask } = {}
+        for(let key in data.tasks) {
+            if(!data.tasks.hasOwnProperty(key)) { continue }
+            const task = data.tasks[key]
+
+            if(!task.name) {
+                throw util.valueError.error(`Bad task name: ${task.name}`)
+            }
+
+            tasks[task.name] = task
+        }
+
+        return new Visit(data.id,
+                         date,
+                         tasks,
+                         data.kg,
+                         data.note)
     }
 
     static emptyVisit(): Visit {
         return new Visit(null, moment(), [], 0.0, '')
+    }
+}
+
+export module Visit {
+    export interface ITask {
+        name: string
+        charge: number
+
+        rabiesTag?: string
     }
 }

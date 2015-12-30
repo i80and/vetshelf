@@ -4,7 +4,7 @@ import * as util from './util'
 import Visit from './Visit'
 
 class TaskIntervals {
-    static get tasks() { return [ 'heartworm', 'exam' ] }
+    static get tasks() { return [ 'heartworm', 'exam', 'rabies' ] }
 
     static task(taskName: string, lastVisit: moment.Moment): moment.Moment {
         return (<any>TaskIntervals)[taskName](lastVisit)
@@ -16,6 +16,10 @@ class TaskIntervals {
 
     static exam(lastVisit: moment.Moment): moment.Moment {
         return TaskIntervals.heartworm(lastVisit)
+    }
+
+    static rabies(lastVisit: moment.Moment): moment.Moment {
+        return lastVisit.clone().add(1, 'year')
     }
 }
 
@@ -45,6 +49,7 @@ interface ISummary {
     species: string,
     breed: string
     description: string,
+    rabies?: string,
     note: string
 }
 
@@ -211,9 +216,9 @@ export default class Patient {
     }
 
     // Return the most recent Visit where the given task was performed
-    lastVisitWithTask(task: string): Visit {
+    lastVisitWithTask(taskName: string): Visit {
         return this.visits.filter((visit) => {
-            return visit.tasks.indexOf(task) >= 0
+            return visit.tasks.findIndex((task) => task.name == taskName) >= 0
         }).sort((a, b) => {
             const diff = a.date.diff(b.date)
             if (diff > 0) { return 1 }
@@ -274,7 +279,7 @@ export default class Patient {
         if (this.intact) { terms.push('intact') }
         else { terms.push('fixed') }
 
-        return {
+        const fields: ISummary = {
             _id: this._id,
             name: this.name,
             sex: terms.join(' '),
@@ -283,6 +288,13 @@ export default class Patient {
             description: this.description,
             note: this.note,
         }
+
+        const rabiesVisit = this.lastVisitWithTask('rabies')
+        if (rabiesVisit && rabiesVisit.task('rabies')) {
+            fields.rabies = rabiesVisit.task('rabies').rabiesTag
+        }
+
+        return fields
     }
 
     static deserialize(data: ISerializedPatient) {

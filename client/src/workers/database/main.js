@@ -16,6 +16,7 @@ class TextSearch {
             this.field('pet_breed')
             this.field('pet_sex')
             this.field('pet_description')
+            this.field('pet_rabies')
             this.field('pet_note')
         })
     }

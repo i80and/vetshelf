@@ -403,7 +403,7 @@ export default class Database {
                 rawPatient.visits = rawPatient.visits.map((v: any) => {
                     v.id = util.genID('v')
                     v.kg = v.weight / 1000
-                    v.tasks = []
+                    v.tasks = {}
                     return v
                 })
                 const patient = Patient.deserialize(rawPatient)
