@@ -1,5 +1,3 @@
-type Symbol = any
-
 export function fromNowMinimum(m: moment.Moment): string {
     const now = moment()
     if(m.diff(now, 'hours') <= 1) {
