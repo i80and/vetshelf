@@ -25,7 +25,7 @@ all: ./build/js/app.js ./build/index.html ./build/js/worker-search.js
 	cp index.html build/
 
 build:
-	mkdir -p build/{style/fonts,js} 2>/dev/null || true
+	mkdir -p build/style build/style/fonts build/js 2>/dev/null || true
 
 .obj:
 	mkdir -p .obj 2>/dev/null || true
