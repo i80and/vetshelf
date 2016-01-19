@@ -1,6 +1,6 @@
 export function fromNowMinimum(m: moment.Moment): string {
     const now = moment()
-    if(m.diff(now, 'hours') <= 1) {
+    if (m.diff(now, 'hours') <= 1) {
         return 'now'
     }
 
@@ -10,7 +10,7 @@ export function fromNowMinimum(m: moment.Moment): string {
 export class Timeout {
     public promise: Promise<string>
     public timeoutID: number
-    private resolve: (status:string)=>void
+    private resolve: (status: string) => void
 
     constructor(ms: number) {
         this.promise = new Promise<string>((resolve) => {
@@ -42,7 +42,7 @@ export function genID(prefix: string): string {
     return `${prefix}-${str.join('')}`
 }
 
-export function batchMap<T>(data: T[], batchSize: number, f: (x: T[])=>void) {
+export function batchMap<T>(data: T[], batchSize: number, f: (x: T[]) => void) {
     let batch: T[] = []
     for (let element of data) {
         batch.push(element)
@@ -77,7 +77,7 @@ export class SimpleError {
 
     check(error: Error): boolean {
         const _error: any = error
-        if(_error.errorHierarchy === undefined) { return false }
+        if (_error.errorHierarchy === undefined) { return false }
 
         return _error.errorHierarchy.indexOf(this.class) >= 0
     }
@@ -90,7 +90,7 @@ export class SimpleError {
     }
 
     get class(): Symbol {
-        if(this.errors.length === 0) {
+        if (this.errors.length === 0) {
             throw Error('Cannot get class of empty SimpleError')
         }
 

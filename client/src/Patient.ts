@@ -4,7 +4,7 @@ import * as util from './util'
 import Visit from './Visit'
 
 class TaskIntervals {
-    static get tasks() { return [ 'heartworm', 'exam', 'rabies' ] }
+    static get tasks() { return ['heartworm', 'exam', 'rabies'] }
 
     static task(taskName: string, lastVisit: moment.Moment): moment.Moment {
         return (<any>TaskIntervals)[taskName](lastVisit)
@@ -41,7 +41,7 @@ interface ISerializedPatient {
 }
 
 interface ISummary {
-    [index:string]: string
+    [index: string]: string
 
     _id: string,
     name: string,
@@ -81,7 +81,7 @@ export default class Patient {
 
         this._due = options.due || new Map<string, moment.Moment>()
 
-        if(this._active === undefined) {
+        if (this._active === undefined) {
             this._active = true
         }
 
@@ -135,7 +135,7 @@ export default class Patient {
 
     get sex() { return this._sex[0] }
     set sex(val) {
-        if(['f', 'm', '?'].indexOf(val) < 0) {
+        if (['f', 'm', '?'].indexOf(val) < 0) {
             throw util.valueError.error(`Invalid sex string: ${val}`)
         }
 
@@ -146,7 +146,7 @@ export default class Patient {
     get intact() { return this._sex[1] === '+' }
     set intact(val) {
         this.dirty.add('sex')
-        const newVal = val? '+' : '-'
+        const newVal = val ? '+' : '-'
         this._sex = `${this.sex}${newVal}`
     }
 
@@ -174,7 +174,7 @@ export default class Patient {
     updateVisit(visit: Visit): void {
         let dirty = false
         this._visits = this._visits.map((v) => {
-            if(v.id === visit.id) {
+            if (v.id === visit.id) {
                 this.dirty.add('visits')
                 dirty = true
                 return visit
@@ -195,16 +195,16 @@ export default class Patient {
     dueByDate(): [moment.Moment, string[]][] {
         // First collapse periodicals due on the same date
         const dateMap = new Map<string, string[]>()
-        for(let [name, date] of this._due) {
+        for (let [name, date] of this._due) {
             const dateString = date.toISOString()
-            if(!dateMap.has(dateString)) { dateMap.set(dateString, []) }
+            if (!dateMap.has(dateString)) { dateMap.set(dateString, []) }
             dateMap.get(dateString).push(name)
         }
 
         // Reconvert the string dates back to date objects, and sort by date
         return Array.from(dateMap.entries()).map((kv) => {
             const result: [moment.Moment, string[]] = [moment(kv[0], moment.ISO_8601), kv[1]]
-            if(!result[0].isValid()) {
+            if (!result[0].isValid()) {
                 throw util.valueError.error(`Error parsing date string: ${kv[0]}`)
             }
             return result
@@ -218,7 +218,7 @@ export default class Patient {
     // Return the most recent Visit where the given task was performed
     lastVisitWithTask(taskName: string): Visit {
         return this.visits.filter((visit) => {
-            return visit.tasks.findIndex((task) => task.name == taskName) >= 0
+            return visit.tasks.findIndex((task) => task.name === taskName) >= 0
         }).sort((a, b) => {
             const diff = a.date.diff(b.date)
             if (diff > 0) { return 1 }
@@ -245,7 +245,7 @@ export default class Patient {
     serialize(): ISerializedPatient {
         this.refreshDueDates()
         const dueDates: { [s: string]: string } = {}
-        for(let [taskName, dueDate] of this._due) {
+        for (let [taskName, dueDate] of this._due) {
             dueDates[taskName] = dueDate.toISOString()
         }
 
@@ -268,10 +268,10 @@ export default class Patient {
 
     summarize(): ISummary {
         const terms: string[] = []
-        if(this.sex === 'm') {
+        if (this.sex === 'm') {
             terms.push('male')
             if (!this.intact) { terms.push('neuter') }
-        } else if(this.sex === 'f') {
+        } else if (this.sex === 'f') {
             terms.push('female')
             if (!this.intact) { terms.push('spay') }
         }
@@ -309,6 +309,6 @@ export default class Patient {
     }
 
     static emptyPatient(): Patient {
-        return new Patient(null, {active: true})
+        return new Patient(null, { active: true })
     }
 }

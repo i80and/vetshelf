@@ -14,7 +14,7 @@ const emit: any = null
 
 class TextSearch {
     private messageID: number
-    private pending: Map<number, [(result: any)=>void, (err: any)=>void]>
+    private pending: Map<number, [(result: any) => void, (err: any) => void]>
     private worker: Worker
 
     constructor() {
@@ -25,7 +25,7 @@ class TextSearch {
             const [resolve, reject] = this.pending.get(e.data.id)
             this.pending.delete(e.data.id)
 
-            if(e.data.error) { return reject(e.data.error) }
+            if (e.data.error) { return reject(e.data.error) }
             return resolve(e.data.result)
         }
     }
@@ -116,7 +116,7 @@ export default class Database {
 
         try {
             const existing: any = await this.localDatabase.get(index._id)
-            if(JSON.stringify(existing.views) === JSON.stringify(index.views)) { return }
+            if (JSON.stringify(existing.views) === JSON.stringify(index.views)) { return }
             if (existing._rev) { index._rev = existing._rev }
         } catch (err) {
             if (err.status !== 404) { throw err }
@@ -133,19 +133,20 @@ export default class Database {
         const t1 = moment()
 
         const promises: Promise<any>[] = []
-        promises.push(this.localDatabase.query('index/owners', {limit: 0}))
-        promises.push(this.localDatabase.query('index/upcoming', {limit: 0}))
+        promises.push(this.localDatabase.query('index/owners', { limit: 0 }))
+        promises.push(this.localDatabase.query('index/upcoming', { limit: 0 }))
 
         const result = await this.localDatabase.allDocs({
             include_docs: true,
             startkey: 'c-',
-            endkey: 'c-\uffff' })
+            endkey: 'c-\uffff'
+        })
 
-        for(let row of result.rows) {
+        for (let row of result.rows) {
             try {
                 const client = Client.deserialize(row.doc)
                 promises.push(this.updateSearchDocument(client))
-            } catch(err) {
+            } catch (err) {
                 console.error(err)
             }
         }
@@ -162,7 +163,7 @@ export default class Database {
         try {
             await this.textSearch.load()
             await this.ensureDesignDocument()
-        } catch(err) {
+        } catch (err) {
             await this.ensureIndexes()
         }
 
@@ -251,14 +252,14 @@ export default class Database {
         const patients = await this.getPatients(client.pets)
         const patientSummaries = patients.map((p) => p.summarize())
 
-        for(let patientSummary of patientSummaries) {
-            for(let field in patientSummary) {
+        for (let patientSummary of patientSummaries) {
+            for (let field in patientSummary) {
                 if (!patientSummary.hasOwnProperty(field)) {
                     continue
                 }
 
                 const destField = 'pet_' + field
-                if(summary[destField] === undefined) {
+                if (summary[destField] === undefined) {
                     summary[destField] = []
                 }
 
@@ -267,7 +268,7 @@ export default class Database {
         }
 
         // Lunr.js won't tokenize strings in arrays, so combine our array elements
-        for(let field in summary) {
+        for (let field in summary) {
             if (!summary.hasOwnProperty(field)) {
                 continue
             }
@@ -314,7 +315,7 @@ export default class Database {
     async populateResultsFromClients(clients: Client[]): Promise<SearchResults> {
         // Construct our client results, and track their patients
         const patientSet = new Set<string>()
-        for(let client of clients) {
+        for (let client of clients) {
             for (let patientID of client.pets) {
                 patientSet.add(patientID)
             }
@@ -337,7 +338,8 @@ export default class Database {
             include_docs: true,
             startkey: 'c-',
             endkey: 'c-\uffff',
-            limit: DEFAULT_LIMIT })
+            limit: DEFAULT_LIMIT
+        })
 
         const clients = results.rows.map((row) => Client.deserialize(row.doc))
         return this.populateResultsFromClients(clients)
@@ -352,7 +354,7 @@ export default class Database {
 
         const matchedPatients = new Set<string>()
         const patients = new Map<string, Patient>()
-        for(let row of results.rows) {
+        for (let row of results.rows) {
             matchedPatients.add(row.doc._id)
             patients.set(row.doc._id, Patient.deserialize(row.doc))
         }
@@ -360,15 +362,15 @@ export default class Database {
 
         // Fill in the remaining patients
         const missingPatients = new Set<string>()
-        for(let client of clients) {
-            for(let petID of client.pets) {
-                if(!matchedPatients.has(petID)) {
+        for (let client of clients) {
+            for (let petID of client.pets) {
+                if (!matchedPatients.has(petID)) {
                     missingPatients.add(petID)
                 }
             }
         }
 
-        for(let patient of (await this.getPatients(Array.from(missingPatients)))) {
+        for (let patient of (await this.getPatients(Array.from(missingPatients)))) {
             patients.set(patient.id, patient)
         }
 
@@ -385,7 +387,7 @@ export default class Database {
     }
 
     async search(query: string): Promise<SearchResults> {
-        if(query === '' || query === 'upcoming') {
+        if (query === '' || query === 'upcoming') {
             return await this.showUpcoming()
         } else if (query === 'random') {
             return await this.showRandom()
@@ -396,7 +398,7 @@ export default class Database {
 
     async importData(data: { clients: any[], patients: any[] }): Promise<void> {
         const patientIDMap = new Map<string, string>()
-        for(let rawPatient of data.patients) {
+        for (let rawPatient of data.patients) {
             try {
                 rawPatient.type = 'patient'
                 rawPatient._id = null
@@ -409,23 +411,23 @@ export default class Database {
                 const patient = Patient.deserialize(rawPatient)
                 await this.updatePatient(patient)
                 patientIDMap.set(rawPatient.id, patient._id)
-            } catch(err) {
+            } catch (err) {
                 console.error(err)
             }
         }
 
-        for(let rawClient of data.clients) {
+        for (let rawClient of data.clients) {
             try {
                 rawClient.type = 'client'
                 rawClient._id = null
                 rawClient.pets = rawClient.pets.map((id: string) => patientIDMap.get(id))
-                                               .filter((id: string) => id !== undefined && id !== null)
+                    .filter((id: string) => id !== undefined && id !== null)
                 rawClient.phone = rawClient.phone.map((phone: [string, string]) => {
                     return { number: phone[0], note: phone[1] }
                 })
                 const client = Client.deserialize(rawClient)
                 await this.updateClient(client)
-            } catch(err) {
+            } catch (err) {
                 console.error(err)
             }
         }

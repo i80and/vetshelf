@@ -9,7 +9,8 @@ export default function toggleWidget(attrs: any) {
 
     return m('div.toggle-widget', [
         m('span.fa', {
-            class: value? 'fa-toggle-on' : 'fa-toggle-off',
-            onclick: () => onprompt()? ontoggle(!value) : undefined })
+            class: value ? 'fa-toggle-on' : 'fa-toggle-off',
+            onclick: () => onprompt() ? ontoggle(!value) : undefined
+        })
     ])
 }

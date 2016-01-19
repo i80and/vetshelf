@@ -9,7 +9,7 @@ function genID() {
     const buf = new Uint32Array(8)
     const str: string[] = []
     crypto.getRandomValues(buf)
-    for(let i = 0; i < buf.length; i += 2) {
+    for (let i = 0; i < buf.length; i += 2) {
         str.push(buf[i].toString(16))
     }
 
@@ -19,14 +19,14 @@ function genID() {
 class PendingContext {
     private id: number
     private timeoutIndex: number
-    public resolve: (val:{})=>void
+    public resolve: (val: {}) => void
     public reject: (msg: {}) => void
-    public removeFunc: (i:number)=>void
+    public removeFunc: (i: number) => void
 
     constructor(id: number,
-                resolve: (val:{})=>void,
-                reject: (msg:{})=>void,
-                removeFunc: (i:number)=>void) {
+        resolve: (val: {}) => void,
+        reject: (msg: {}) => void,
+        removeFunc: (i: number) => void) {
         this.id = id
         this.resolve = resolve
         this.reject = reject
@@ -34,7 +34,7 @@ class PendingContext {
         this.timeoutIndex = setTimeout(() => {
             removeFunc(this.id)
 
-            return reject({error: 'timeout'})
+            return reject({ error: 'timeout' })
         }, TIMEOUT_INTERVAL)
 
         Object.seal(this)
@@ -72,19 +72,19 @@ export default class Connection {
 
             try {
                 data = JSON.parse(event.data)
-            } catch(err) {
+            } catch (err) {
                 console.warn('Received bad message', event.data)
                 return
             }
 
-            if(!Number.isInteger(data.i)) {
+            if (!Number.isInteger(data.i)) {
                 console.warn('Received unknown message', data)
                 return
             }
 
             const pending = this.pending.get(data.i)
             pending.expire()
-            if(data.m === 'error') { return pending.reject(data.m) }
+            if (data.m === 'error') { return pending.reject(data.m) }
             else { return pending.resolve(data.m) }
         }
 
@@ -131,9 +131,9 @@ export default class Connection {
     /// Save a patient to the database, generating a new ID if it isn't already
     /// set. When inserting, specifies a list of client IDs for whom to add
     /// this patient as a pet.
-    async savePatient(patient: Patient, clientIDs: string[]=[]): Promise<Patient> {
+    async savePatient(patient: Patient, clientIDs: string[] = []): Promise<Patient> {
         const newDoc = patient.id === undefined || patient.id === null
-        if(newDoc) {
+        if (newDoc) {
             patient.id = this.genID()
             await this.__send_message(['insert-patient', patient.serialize(), clientIDs])
             return patient
@@ -145,7 +145,7 @@ export default class Connection {
 
     async saveClient(client: Client): Promise<Client> {
         const newDoc = client.id === undefined || client.id === null
-        if(newDoc) {
+        if (newDoc) {
             client.id = this.genID()
             await this.__send_message(['insert-client', client.serialize()])
             return client
@@ -157,7 +157,7 @@ export default class Connection {
 
     saveVisit(patientID: string, visit: Visit) {
         const newDoc = visit.id === undefined || visit.id === null
-        if(newDoc) {
+        if (newDoc) {
             visit.id = this.genID()
             return this.__send_message(['insert-visit', patientID, visit.serialize()])
         }

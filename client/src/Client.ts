@@ -34,8 +34,8 @@ export default class Client {
         this._pets = new Set<string>()
         this._note = options.note || ''
 
-        if(options.pets) {
-            for(let petID of options.pets) {
+        if (options.pets) {
+            for (let petID of options.pets) {
                 this._pets.add(petID)
             }
         }
@@ -76,14 +76,14 @@ export default class Client {
         // If the new phone number has no number associated with it, remove
         // from the list.
         const deletePhone = (newPhone.number === '')
-        if(deletePhone) {
+        if (deletePhone) {
             this._phone = this._phone.filter((p) => p.number !== oldPhone.number)
             return
         }
 
         // Otherwise, see if we can update an existing entry
         const index = this._phone.findIndex((p) => p.number === oldPhone.number)
-        if(index >= 0) {
+        if (index >= 0) {
             this._phone[index] = newPhone
             return
         }
@@ -151,7 +151,7 @@ export default class Client {
             throw util.valueError.error(`Not a client instance: ${data.type}`)
         }
 
-        if(data.phone === null) { data.phone = [] }
+        if (data.phone === null) { data.phone = [] }
         data.phone = data.phone.map((c: any) => PhoneInfo.deserialize(c))
 
         return new Client(data._id, data)

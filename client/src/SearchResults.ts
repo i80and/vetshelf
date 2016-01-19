@@ -14,21 +14,21 @@ export default class SearchResults {
     private clientsIndex: Map<clientID, Client>
 
     constructor(clients: Client[],
-                patients: Map<patientID, Patient>=null,
-                matchedPatients: Set<patientID>=null) {
+        patients: Map<patientID, Patient> = null,
+        matchedPatients: Set<patientID> = null) {
 
         this.clientIDs = clients.map((doc) => doc.id) || []
         this.patients = patients || new Map<patientID, Patient>()
         this.matchedPatients = matchedPatients || new Set<patientID>()
 
         this.clientsIndex = new Map<clientID, Client>()
-        for(let client of clients) {
+        for (let client of clients) {
             this.clientsIndex.set(client.id, client)
         }
 
         this.visitIndex = new Map<visitID, patientID>()
-        for(let patient of this.patients.values()) {
-            for(let visit of patient.visits) {
+        for (let patient of this.patients.values()) {
+            for (let visit of patient.visits) {
                 this.visitIndex.set(visit.id, patient.id)
             }
         }
@@ -46,11 +46,11 @@ export default class SearchResults {
         return this.patients.get(id) || null
     }
 
-    map<T>(f: (c: Client)=>T) {
+    map<T>(f: (c: Client) => T) {
         const result: T[] = []
-        for(let id of this.clientIDs) {
+        for (let id of this.clientIDs) {
             const client = this.clientsIndex.get(id)
-            if(!client) { continue }
+            if (!client) { continue }
             result.push(f(client))
         }
 
@@ -58,7 +58,7 @@ export default class SearchResults {
     }
 
     refreshClient(client: Client): void {
-        if(!this.clientsIndex.get(client._id)) {
+        if (!this.clientsIndex.get(client._id)) {
             // Insert the new client at the top of the results list
             this.clientIDs.splice(0, 0, client._id)
         }
@@ -68,10 +68,10 @@ export default class SearchResults {
 
     refreshPatient(patient: Patient): void {
         const oldPatient = this.patients.get(patient._id)
-        if(oldPatient) {
+        if (oldPatient) {
             // Remove any old visits
-            for(let visit of oldPatient.visits) {
-                if(patient.visits.findIndex((v) => v.id === visit.id) < 0) {
+            for (let visit of oldPatient.visits) {
+                if (patient.visits.findIndex((v) => v.id === visit.id) < 0) {
                     // We have to remove this visit
                     this.visitIndex.delete(visit.id)
                 }
@@ -79,30 +79,30 @@ export default class SearchResults {
         }
 
         this.patients.set(patient._id, patient)
-        for(let visit of patient.visits) {
+        for (let visit of patient.visits) {
             this.visitIndex.set(visit.id, patient._id)
         }
     }
 
     static deserialize(data: any) {
-        if(data.type !== 'search-results') {
+        if (data.type !== 'search-results') {
             throw util.valueError.error(`Not a SearchResult instance: ${data.type}`)
         }
 
         const clients: Client[] = []
-        for(let rawClient of data.clients) {
+        for (let rawClient of data.clients) {
             const parsedClient = Client.deserialize(rawClient)
             clients.push(parsedClient)
         }
 
         const patients = new Map<string, Patient>()
-        for(let rawPatient of data.patients) {
+        for (let rawPatient of data.patients) {
             const patient = Patient.deserialize(rawPatient)
             patients.set(patient.id, patient)
         }
 
         const matchedPatients = new Set<string>()
-        for(let petID of data['matched-patients']) {
+        for (let petID of data['matched-patients']) {
             matchedPatients.add(petID)
         }
 

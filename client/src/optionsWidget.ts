@@ -6,7 +6,7 @@ export class State {
     public name: string
     public view: () => MithrilVirtualElement
 
-    constructor(name: string, view: ()=>MithrilVirtualElement) {
+    constructor(name: string, view: () => MithrilVirtualElement) {
         this.name = name
         this.view = view
     }

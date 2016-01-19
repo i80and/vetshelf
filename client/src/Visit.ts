@@ -21,10 +21,10 @@ export default class Visit {
 
     with(fields: { date?: moment.Moment, note?: string, tasks?: Visit.ITask[], weightKg?: number }): Visit {
         const result = new Visit(this.id, this.date, this.tasks, this.weightKg, this.note)
-        if(fields.date !== undefined) { result.date = fields.date }
-        if(fields.tasks !== undefined) { result.tasks = fields.tasks }
+        if (fields.date !== undefined) { result.date = fields.date }
+        if (fields.tasks !== undefined) { result.tasks = fields.tasks }
         if (fields.weightKg !== undefined) { result.weightKg = fields.weightKg }
-        if(fields.note !== undefined) { result.note = fields.note }
+        if (fields.note !== undefined) { result.note = fields.note }
         return result
     }
 
@@ -35,8 +35,8 @@ export default class Visit {
 
     get tasks(): Visit.ITask[] {
         const tasks: Visit.ITask[] = []
-        for(let key in this._tasks) {
-            if(!this._tasks.hasOwnProperty(key)) { continue }
+        for (let key in this._tasks) {
+            if (!this._tasks.hasOwnProperty(key)) { continue }
             tasks.push(this._tasks[key])
         }
 
@@ -45,7 +45,7 @@ export default class Visit {
 
     set tasks(val) {
         const newTasks: { [index: string]: Visit.ITask } = {}
-        for(let task of val) {
+        for (let task of val) {
             newTasks[task.name] = task
         }
 
@@ -73,8 +73,8 @@ export default class Visit {
     }
 
     rabiesTag(): string {
-        if (this._tasks['rabies']) {
-            return this._tasks['rabies']['rabiesTag'] || ''
+        if (this._tasks.hasOwnProperty('rabies')) {
+            return this._tasks['rabies'].rabiesTag || ''
         }
 
         return ''
@@ -98,11 +98,11 @@ export default class Visit {
 
         // Validate the tasks
         const tasks: { [index: string]: Visit.ITask } = {}
-        for(let key in data.tasks) {
-            if(!data.tasks.hasOwnProperty(key)) { continue }
+        for (let key in data.tasks) {
+            if (!data.tasks.hasOwnProperty(key)) { continue }
             const task = data.tasks[key]
 
-            if(!task.name) {
+            if (!task.name) {
                 throw util.valueError.error(`Bad task name: ${task.name}`)
             }
 
@@ -110,10 +110,10 @@ export default class Visit {
         }
 
         return new Visit(data.id,
-                         date,
-                         tasks,
-                         data.kg,
-                         data.note)
+            date,
+            tasks,
+            data.kg,
+            data.note)
     }
 
     static emptyVisit(): Visit {

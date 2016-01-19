@@ -6,7 +6,7 @@
 // either at the moment-level or at the draw level. Or both!
 
 interface IViewConfig {
-    onchange?: (d:moment.Moment) => void;
+    onchange?: (d: moment.Moment) => void;
 }
 
 function listWeekdays() {
@@ -18,7 +18,7 @@ function listWeekdays() {
         moment.weekdaysMin(3 + firstDayOfWeek),
         moment.weekdaysMin(4 + firstDayOfWeek),
         moment.weekdaysMin(5 + firstDayOfWeek),
-        moment.weekdaysMin(6 + firstDayOfWeek) ]
+        moment.weekdaysMin(6 + firstDayOfWeek)]
 
     return weekdays
 }
@@ -71,16 +71,16 @@ export class CalendarModel {
 
 function selectDay(model: CalendarModel, day: moment.Moment, options: IViewConfig) {
     model.selected = day
-    if(options.onchange) { options.onchange.bind(model)(day) }
+    if (options.onchange) { options.onchange.bind(model)(day) }
 }
 
 function renderMonthDay(model: CalendarModel, cursor: moment.Moment, options: IViewConfig) {
     const elementOptions: any = {}
-    if(cursor.month() !== model.showing.month()) {
+    if (cursor.month() !== model.showing.month()) {
         elementOptions.class = 'outside-month'
     }
 
-    if(cursor.isSame(model.selected, 'day')) {
+    if (cursor.isSame(model.selected, 'day')) {
         elementOptions.class += ' selected'
     }
 
@@ -107,7 +107,7 @@ function renderMonthWeek(model: CalendarModel, cursor: moment.Moment, options: I
     ])
 }
 
-export function monthWidget(model: CalendarModel, options: IViewConfig={}) {
+export function monthWidget(model: CalendarModel, options: IViewConfig = {}) {
     const cursor = model.showing.clone()
     cursor.startOf('month')
     cursor.startOf('week')

@@ -10,8 +10,8 @@ export class Model {
     calendar: calendarWidget.CalendarModel
     tasks: visit.Visit.ITask[]
 
-    weightKg: (p?: number)=>number
-    note: (p?: string)=>string
+    weightKg: (p?: number) => number
+    note: (p?: string) => string
 
     constructor(appointment: Visit) {
         this.appointment = appointment
@@ -32,7 +32,8 @@ export class Model {
             tasks: this.tasks.filter((task) => Boolean(task.name)),
             date: this.date,
             weightKg: this.weightKg(),
-            note: this.note()})
+            note: this.note()
+        })
         return this.appointment
     }
 
@@ -48,7 +49,7 @@ interface IViewConfig {
 
 function renderEditTasks(model: Model, options: IViewConfig): MithrilVirtualElement {
     const rows: MithrilVirtualElement[] = []
-    for(let task of model.tasks) {
+    for (let task of model.tasks) {
         rows.push(m('div', [
             m('input', {
                 placeholder: 'Task',
@@ -87,9 +88,9 @@ function renderExtras(model: Model, options: IViewConfig) {
         elements.push(
             m('input', {
                 placeholder: 'Rabies Tag',
-                value: rabiesTask['rabiesTag'] || '',
+                value: rabiesTask.rabiesTag || '',
                 oninput: function() {
-                    rabiesTask['rabiesTag'] = this.value
+                    rabiesTask.rabiesTag = this.value
                     options.onedit(model)
                 }
             }))
@@ -98,9 +99,9 @@ function renderExtras(model: Model, options: IViewConfig) {
     return elements
 }
 
-export function view(model: Model, options: IViewConfig={}) {
-    if (!options.onedit) { options.onedit = () => {} }
-    if (!options.ondelete) { options.ondelete = () => {} }
+export function view(model: Model, options: IViewConfig = {}) {
+    if (!options.onedit) { options.onedit = () => { } }
+    if (!options.ondelete) { options.ondelete = () => { } }
 
     model.tasks = model.tasks.filter((task) => Boolean(task.name))
     model.tasks.push({ name: '', charge: 0 })
@@ -112,7 +113,7 @@ export function view(model: Model, options: IViewConfig={}) {
         m('div', {}, [
             m('input', {
                 oninput: function() {
-                    if(this.value === '') {
+                    if (this.value === '') {
                         model.weightKg(0.0)
                         return
                     }

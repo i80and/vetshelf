@@ -9,7 +9,7 @@ export class ViewModel {
         this.password = m.prop('')
     }
 
-    connect() {}
+    connect() { }
 }
 
 export let vm: ViewModel = null
@@ -20,14 +20,17 @@ export const view = function() {
             m('input#login-bar', {
                 value: vm.serverAddress(),
                 placeholder: 'Server',
-                onclick: m.withAttr('value', vm.serverAddress) }),
+                onclick: m.withAttr('value', vm.serverAddress)
+            }),
             m('div.small-button', {
                 title: 'Connect',
-                onclick: () => vm.connect() }, m('span.fa.fa-toggle-right')),
+                onclick: () => vm.connect()
+            }, m('span.fa.fa-toggle-right')),
             m('input[type=password]#password-bar', {
                 value: vm.password(),
                 placeholder: 'Password',
-                onclick: m.withAttr('value', vm.password) })
+                onclick: m.withAttr('value', vm.password)
+            })
         ])
     ])
 }
