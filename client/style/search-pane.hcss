@@ -10,7 +10,7 @@ selector(#search-results) {
     flex-direction: column;
     padding: 0px;
     width: 500px;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden;
 
     on(COMPACT)
