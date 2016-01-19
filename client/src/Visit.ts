@@ -5,11 +5,11 @@ import * as util from './util'
 export default class Visit {
     id: string
     private _date: moment.Moment
-    private _tasks: { [index: string]: Visit.ITask }
+    private _tasks: { [index: string]: ITask }
     private _weightKg: number
     private _note: string
 
-    constructor(id: string, date: moment.Moment, tasks: { [index: string]: Visit.ITask }, weightKg: number, note: string) {
+    constructor(id: string, date: moment.Moment, tasks: { [index: string]: ITask }, weightKg: number, note: string) {
         this.id = id
         this._date = date || moment()
         this._tasks = tasks || {}
@@ -19,8 +19,8 @@ export default class Visit {
         Object.freeze(this._tasks)
     }
 
-    with(fields: { date?: moment.Moment, note?: string, tasks?: Visit.ITask[], weightKg?: number }): Visit {
-        const result = new Visit(this.id, this.date, this.tasks, this.weightKg, this.note)
+    with(fields: { date?: moment.Moment, note?: string, tasks?: ITask[], weightKg?: number }): Visit {
+        const result = new Visit(this.id, this.date, this._tasks, this.weightKg, this.note)
         if (fields.date !== undefined) { result.date = fields.date }
         if (fields.tasks !== undefined) { result.tasks = fields.tasks }
         if (fields.weightKg !== undefined) { result.weightKg = fields.weightKg }
@@ -33,8 +33,8 @@ export default class Visit {
         this._date = val
     }
 
-    get tasks(): Visit.ITask[] {
-        const tasks: Visit.ITask[] = []
+    get tasks(): ITask[] {
+        const tasks: ITask[] = []
         for (let key in this._tasks) {
             if (!this._tasks.hasOwnProperty(key)) { continue }
             tasks.push(this._tasks[key])
@@ -44,7 +44,7 @@ export default class Visit {
     }
 
     set tasks(val) {
-        const newTasks: { [index: string]: Visit.ITask } = {}
+        const newTasks: { [index: string]: ITask } = {}
         for (let task of val) {
             newTasks[task.name] = task
         }
@@ -68,7 +68,7 @@ export default class Visit {
         }, 0)
     }
 
-    task(name: string): Visit.ITask {
+    task(name: string): ITask {
         return this._tasks[name] || null
     }
 
@@ -97,7 +97,7 @@ export default class Visit {
         }
 
         // Validate the tasks
-        const tasks: { [index: string]: Visit.ITask } = {}
+        const tasks: { [index: string]: ITask } = {}
         for (let key in data.tasks) {
             if (!data.tasks.hasOwnProperty(key)) { continue }
             const task = data.tasks[key]
@@ -117,15 +117,13 @@ export default class Visit {
     }
 
     static emptyVisit(): Visit {
-        return new Visit(null, moment(), [], 0.0, '')
+        return new Visit(null, moment(), {}, 0.0, '')
     }
 }
 
-export module Visit {
-    export interface ITask {
-        name: string
-        charge: number
+export interface ITask {
+    name: string
+    charge: number
 
-        rabiesTag?: string
-    }
+    rabiesTag?: string
 }

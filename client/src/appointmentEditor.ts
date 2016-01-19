@@ -8,7 +8,7 @@ import * as visit from './Visit'
 export class Model {
     appointment: Visit
     calendar: calendarWidget.CalendarModel
-    tasks: visit.Visit.ITask[]
+    tasks: visit.ITask[]
 
     weightKg: (p?: number) => number
     note: (p?: string) => string
