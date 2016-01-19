@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "noImplicitAny": true,
+        "preserveConstEnums": true,
+        "outDir": "./.obj",
+        "sourceMap": true
+    },
+    "files": [
+        "./src/app.ts",
+        "./src/appointmentEditor.ts",
+        "./src/calendarWidget.ts",
+        "./src/Client.ts",
+        "./src/PhoneInfo.ts",
+        "./src/Connection.ts",
+        "./src/Login.ts",
+        "./src/Import.ts",
+        "./src/optionsWidget.ts",
+        "./src/Patient.ts",
+        "./src/Search.ts",
+        "./src/Database.ts",
+        "./src/SearchResults.ts",
+        "./src/toggleWidget.ts",
+        "./src/util.ts",
+        "./src/Visit.ts"
+    ]
+}
