@@ -1,6 +1,6 @@
 self.importScripts('lunr.min.js',
-                   'localforage.min.js',
-                   'moment.min.js')
+    'localforage.min.js',
+    'moment.min.js')
 
 class TextSearch {
     constructor() {
@@ -51,13 +51,13 @@ class TextSearch {
     }
 
     debug(record) {
-        if(record) {
+        if (record) {
             return new Promise((resolve) => resolve(this.searchIndex.documentStore.get(record)))
         }
 
         return localforage.getItem('lunr-index').then((rawIndex) => {
             let cacheSize = -1
-            if(rawIndex) { cacheSize = JSON.parse(rawIndex).tokenStore.length }
+            if (rawIndex) { cacheSize = JSON.parse(rawIndex).tokenStore.length }
             return {
                 tokenStoreSize: this.searchIndex.tokenStore.length,
                 cacheSize: cacheSize
@@ -93,7 +93,7 @@ self.onmessage = function(e) {
         }).catch((err) => {
             reportError(e.data.id, err)
         })
-    } catch(err) {
+    } catch (err) {
         reportError(e.data.id, err)
     }
 }

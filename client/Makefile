@@ -49,6 +49,7 @@ build:
 
 lint:
 	./node_modules/.bin/tsfmt -r
+	./node_modules/.bin/tsfmt -r -- $(WORKER_DATABASE)
 	./node_modules/.bin/tslint $(SRC)
 	./node_modules/.bin/jshint -c .jshintrc $(WORKER_DATABASE)
 
