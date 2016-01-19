@@ -2,7 +2,6 @@
 /// <reference path="typings/mithril/mithril.d.ts" />
 
 import * as calendarWidget from './calendarWidget'
-import * as combobox from './editableComboboxWidget'
 import Visit from './Visit'
 import * as visit from './Visit'
 
