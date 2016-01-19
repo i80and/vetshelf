@@ -31,7 +31,7 @@ build:
 	mkdir -p .obj 2>/dev/null || true
 
 ./build/js/app.js: node_modules build .obj $(SRC)
-	./node_modules/.bin/tsc --noImplicitAny --target es6 --outDir ./.obj $(SRC)
+	./node_modules/.bin/tsc
 	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify --blacklist regenerator ]
 
 ./build/js/worker-search.js: node_modules build .obj $(WORKER_DATABASE)
