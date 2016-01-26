@@ -27,15 +27,12 @@ all: ./build/js/app.js ./build/index.html ./build/js/worker-search.js
 build:
 	mkdir -p build/style build/style/fonts build/js 2>/dev/null || true
 
-.obj:
-	mkdir -p .obj 2>/dev/null || true
-
-./build/js/app.js: node_modules build .obj $(SRC)
+./build/js/app.js: node_modules build $(SRC)
 	./node_modules/.bin/tsc
-	./node_modules/.bin/browserify -o $@ -e ./.obj/app.js -t [ babelify --blacklist regenerator ]
+	./node_modules/.bin/rollup -o $@ -i ./.obj/app.js
 
-./build/js/worker-search.js: node_modules build .obj $(WORKER_DATABASE)
-	./node_modules/.bin/browserify -o $@ -e $(WORKER_DATABASE) -t [ babelify --blacklist regenerator ]
+./build/js/worker-search.js: build $(WORKER_DATABASE)
+	cp $(WORKER_DATABASE) $@
 
 ./build/index.html: index.html ./build/style/main.css ./build/style/normalize.css
 	cp index.html $@
@@ -58,5 +55,5 @@ node_modules: package.json
 	touch node_modules
 
 clean:
-	rm -r .obj
-	rm -r build
+	rm -rf .obj
+	rm -rf build

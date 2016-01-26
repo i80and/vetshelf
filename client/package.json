@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "author": "Andrew Aldridge <i80and@foxquill.com>",
   "dependencies": {
-    "babelify": "6.4",
-    "browserify": "13.0",
+    "rollup": "0.25",
     "typescript": "1.7",
     "tslint": "3.3",
     "typescript-formatter": "1.2",

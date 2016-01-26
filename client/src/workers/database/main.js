@@ -1,6 +1,5 @@
 self.importScripts('lunr.min.js',
-    'localforage.min.js',
-    'moment.min.js')
+    'localforage.min.js')
 
 class TextSearch {
     constructor() {
