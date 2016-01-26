@@ -6,9 +6,9 @@
     "babelify": "6.4",
     "browserify": "13.0",
     "typescript": "1.7",
-    "tslint": "3.2",
+    "tslint": "3.3",
     "typescript-formatter": "1.2",
-    "jshint": "2.9.1-rc2"
+    "jshint": "2.9.1"
   },
   "private": true
 }
