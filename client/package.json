@@ -4,9 +4,9 @@
   "author": "Andrew Aldridge <i80and@foxquill.com>",
   "dependencies": {
     "rollup": "0.25",
-    "typescript": "1.7",
-    "tslint": "3.3",
-    "typescript-formatter": "1.2",
+    "typescript": "1.8",
+    "tslint": "3.6",
+    "typescript-formatter": "2.1",
     "jshint": "2.9.1"
   },
   "private": true
