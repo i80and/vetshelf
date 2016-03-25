@@ -275,9 +275,9 @@
       "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-1.1.13.tgz"
     },
     "rollup": {
-      "version": "0.25.5",
-      "from": "rollup@0.25.5",
-      "resolved": "https://registry.npmjs.org/rollup/-/rollup-0.25.5.tgz"
+      "version": "0.25.6",
+      "from": "rollup@0.25.6",
+      "resolved": "https://registry.npmjs.org/rollup/-/rollup-0.25.6.tgz"
     },
     "shelljs": {
       "version": "0.3.0",
