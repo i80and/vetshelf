@@ -7,9 +7,8 @@ export default class Hopps {
         this.db = db
     }
 
-    rawTransaction(objectStores: string[], mode?: string): IDBTransaction {
-        if (!mode) { mode = 'readonly' }
-        return this.db.transaction(objectStores, mode)
+    rawTransaction(objectStores: string[]): IDBTransaction {
+        return this.db.transaction(objectStores, 'readonly')
     }
 
     get<T>(objectStore: string, indexName: string, queries: string[]): Promise<T[]> {
@@ -43,21 +42,34 @@ export default class Hopps {
         })
     }
 
-    put(storeName: string, object: {}, transaction?: IDBTransaction): Promise<void> {
-        if (!transaction) {
-            transaction = this.db.transaction(storeName, 'readwrite')
+    put(objectStore: string, object: {}) {
+        const map = new Map()
+        map.set(objectStore, [object])
+        return this.putAll(map)
+    }
+
+    putAll(objects: Map<string, {}[]>): Promise<void> {
+        const keys = Array.from(objects.keys())
+        const transaction = this.db.transaction(keys, 'readwrite')
+        for (let storeName of keys) {
+            const store = transaction.objectStore(storeName)
+            for (let doc of objects.get(storeName)) {
+                store.put(doc)
+            }
         }
 
-        const store = transaction.objectStore(storeName)
-        const request = store.put(object)
-
         return new Promise<void>((resolve, reject) => {
-            request.onsuccess = () => {
-                this.onchange(storeName, object)
+            transaction.oncomplete = () => {
+                for (let [storeName, docs] of objects.entries()) {
+                    for (let doc of docs) {
+                        this.onchange(storeName, doc)
+                    }
+                }
+
                 return resolve()
             }
 
-            request.onerror = (err) => {
+            transaction.onerror = (err) => {
                 return reject(new Error(`Error saving document`))
             }
         })

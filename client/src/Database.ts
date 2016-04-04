@@ -130,8 +130,6 @@ export default class Database {
                 return
             }
 
-            console.log(`Saving in ${objectStore}`, doc)
-
             if (objectStore === 'clients') {
                 const client = Client.deserialize(doc)
                 await this.updateSearchDocument(client)
@@ -236,17 +234,21 @@ export default class Database {
         if (patient._id !== null && !patient.isDirty) { return patient._id }
         if (patient._id === null) { patient._id = util.genID('p') }
 
-        const transaction = this.localDatabase.rawTransaction(['clients', 'patients'], 'readwrite')
-        await this.localDatabase.put('patients', patient.serialize(), transaction)
+        const save = new Map<string, {}[]>()
+        const saveClients: {}[] = []
+        save.set('patients', [patient.serialize()])
 
         // Add the patient's owners
         if (options && options.addOwners) {
             const clients = await this.getClients(options.addOwners)
             for (let client of clients) {
                 client.addPet(patient._id)
-                await this.localDatabase.put('clients', client.serialize(), transaction)
+                saveClients.push(client.serialize())
             }
         }
+
+        save.set('clients', saveClients)
+        this.localDatabase.putAll(save)
 
         patient.clearDirty()
         return patient._id
