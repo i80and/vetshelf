@@ -37,7 +37,7 @@ export const view = function() {
 export const controller = function() {
     const database = new Database()
     m.startComputation()
-    database.ensureIndexes().then(() => {
+    database.initialize().then(() => {
         vm = new ViewModel(database)
         m.endComputation()
     })

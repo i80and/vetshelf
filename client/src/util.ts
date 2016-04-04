@@ -7,6 +7,19 @@ export function fromNowMinimum(m: moment.Moment): string {
     return m.from(now)
 }
 
+export class Timer {
+    t1: number
+
+    constructor() {
+        this.t1 = (new Date()).getTime()
+    }
+
+    log(name: string): void {
+        const t2 = new Date().getTime()
+        console.log(`${name} took ${t2 - this.t1} ms`)
+    }
+}
+
 export class Timeout {
     public promise: Promise<string>
     public timeoutID: number

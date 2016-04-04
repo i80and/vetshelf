@@ -1,16 +1,13 @@
 /// <reference path="typings/moment/moment.d.ts" />
-/// <reference path="typings/pouchdb.d.ts" />
-/// <reference path="typings/localforage.d.ts" />
 
 import SearchResults from './SearchResults'
 import Client from './Client'
 import Patient from './Patient'
+import * as patient from './Patient'
+import Hopps from './Hopps'
 import * as util from './util'
 
 const DEFAULT_LIMIT = 50
-
-// Dummy for PouchDB Map/Reduce functions
-const emit: any = null
 
 class TextSearch {
     private messageID: number
@@ -74,111 +71,71 @@ class TextSearch {
 }
 
 export default class Database {
-    private localDatabase: PouchDB
+    private localDatabase: Hopps
     private textSearch: TextSearch
+    private batchMode: number
 
     constructor() {
         let w: any = window
         w.db = this
 
-        this.localDatabase = new PouchDB('vetshelf')
+        this.localDatabase = null
         this.textSearch = new TextSearch()
-    }
-
-    private async ensureDesignDocument(): Promise<void> {
-        const index = {
-            _id: '_design/index',
-            _rev: <string>undefined,
-            filters: {
-                'replication-changes': function(doc: any) {
-                    return ['client', 'patient'].indexOf(doc.type) >= 0
-                }.toString()
-            },
-            views: {
-                owners: {
-                    map: function(doc: any) {
-                        if (doc.type !== 'client') { return }
-                        for (let petID of doc.pets) {
-                            emit(petID)
-                        }
-                    }.toString()
-                },
-                upcoming: {
-                    map: function(doc: any) {
-                        if (doc.type !== 'patient') { return }
-                        for (let visit of doc.visits) {
-                            emit(visit.date)
-                        }
-                    }.toString()
-                }
-            }
-        }
-
-        try {
-            const existing: any = await this.localDatabase.get(index._id)
-            if (JSON.stringify(existing.views) === JSON.stringify(index.views)) { return }
-            if (existing._rev) { index._rev = existing._rev }
-        } catch (err) {
-            if (err.status !== 404) { throw err }
-        }
-
-        console.log('Installing new design document')
-        await this.localDatabase.put(index)
+        this.batchMode = 0
     }
 
     async ensureIndexes(): Promise<void> {
-        await this.ensureDesignDocument()
-
-        console.log('Generating indexes')
-        const t1 = moment()
-
+        const timer = new util.Timer()
+        console.log('Building search index')
         const promises: Promise<any>[] = []
-        promises.push(this.localDatabase.query('index/owners', { limit: 0 }))
-        promises.push(this.localDatabase.query('index/upcoming', { limit: 0 }))
 
-        const result = await this.localDatabase.allDocs({
-            include_docs: true,
-            startkey: 'c-',
-            endkey: 'c-\uffff'
-        })
-
-        for (let row of result.rows) {
+        await this.localDatabase.forEach('clients', null, (key, rawDoc) => {
             try {
-                const client = Client.deserialize(row.doc)
+                const client = Client.deserialize(rawDoc)
                 promises.push(this.updateSearchDocument(client))
             } catch (err) {
                 console.error(err)
             }
-        }
+
+            return true
+        })
 
         await Promise.all(promises)
         await this.textSearch.persist()
 
-        const t2 = moment()
-        console.log(`Took ${t2.diff(t1, 'seconds')}s to build search index`)
+        timer.log('Building search index')
     }
 
     async initialize(): Promise<void> {
+        const localDatabase = await Hopps.connect('vetshelf', 1, (openRequest) => {
+            const db: IDBDatabase = openRequest.result
+            const clientStore = db.createObjectStore('clients', { keyPath: '_id' })
+            clientStore.createIndex('pets', 'pets', { multiEntry: true })
+
+            const patientStore = db.createObjectStore('patients', { keyPath: '_id' })
+            patientStore.createIndex('visitDates', 'visitDates', { multiEntry: true })
+        })
+        this.localDatabase = localDatabase
+
         // Check if we have a cached search index, and if so, load it
         try {
             await this.textSearch.load()
-            await this.ensureDesignDocument()
         } catch (err) {
             await this.ensureIndexes()
         }
 
         // Keep the search index up to date
-        this.localDatabase.changes({
-            include_docs: true,
-            live: true,
-            since: 'now',
-            filter: 'index/replication-changes'
-        }).on('change', async (results: any): Promise<void> => {
-            const doc = results.doc
-            if (doc.type === 'client') {
+        this.localDatabase.onchange = async (objectStore, doc) => {
+            if (this.batchMode > 0) {
+                return
+            }
+
+            console.log(`Saving in ${objectStore}`, doc)
+
+            if (objectStore === 'clients') {
                 const client = Client.deserialize(doc)
                 await this.updateSearchDocument(client)
-            } else if (doc.type === 'patient') {
+            } else if (objectStore === 'patients') {
                 const patient = Patient.deserialize(doc)
                 const owners = await this.getOwners([patient.id])
                 for (let owner of owners) {
@@ -187,63 +144,47 @@ export default class Database {
             }
 
             await this.textSearch.persist()
-        })
+        }
     }
 
     async getClients(ids: string[]): Promise<Client[]> {
-        const results = await this.localDatabase.allDocs({
-            include_docs: true,
-            keys: ids
-        })
+        let rawDocs: {}[]
 
-        return results.rows.map((row) => {
-            return Client.deserialize(row.doc)
+        try {
+            rawDocs = await this.localDatabase.get('clients', '', ids)
+        } catch (err) {
+            throw util.keyError.error(err.message)
+        }
+
+        return rawDocs.map((rawDoc) => {
+            return Client.deserialize(rawDoc)
         })
     }
 
     async getClient(id: string): Promise<Client> {
-        try {
-            const rawClient = await this.localDatabase.get(id)
-            return Client.deserialize(rawClient)
-        } catch (err) {
-            if (err.status === 404) {
-                throw util.keyError.error(`No such client: "${id}"`)
-            }
-
-            throw err
-        }
+        return (await this.getClients([id]))[0]
     }
 
     async getPatients(ids: string[]): Promise<Patient[]> {
-        const results = await this.localDatabase.allDocs({
-            include_docs: true,
-            keys: ids
-        })
+        let rawDocs: {}[]
+        try {
+            rawDocs = await this.localDatabase.get('patients', '', ids)
+        } catch (err) {
+            throw util.keyError.error(err.message)
+        }
 
-        return results.rows.map((row) => {
-            return Patient.deserialize(row.doc)
+        return rawDocs.map((rawDoc: any) => {
+            return Patient.deserialize(rawDoc)
         })
     }
 
     async getPatient(id: string): Promise<Patient> {
-        try {
-            const rawPatient = await this.localDatabase.get(id)
-            return Patient.deserialize(<any>rawPatient)
-        } catch (err) {
-            if (err.status === 404) {
-                throw util.keyError.error(`No such patient: "${id}"`)
-            }
-
-            throw err
-        }
+        return (await this.getPatients([id]))[0]
     }
 
     async getOwners(patientIDs: string[]): Promise<Client[]> {
-        const results = await this.localDatabase.query('index/owners', {
-            keys: patientIDs
-        })
-
-        const clientIDs = new Set(results.rows.map((row) => row.id))
+        const results = await this.localDatabase.get('clients', 'pets', patientIDs)
+        const clientIDs = new Set(results.map((row: any) => row._id))
         return this.getClients(Array.from(clientIDs))
     }
 
@@ -285,7 +226,7 @@ export default class Database {
         if (client._id !== null && !client.isDirty) { return client._id }
 
         if (client._id === null) { client._id = util.genID('c') }
-        client._rev = (await this.localDatabase.put(client.serialize())).rev
+        await this.localDatabase.put('clients', client.serialize())
 
         client.clearDirty()
         return client.id
@@ -293,19 +234,18 @@ export default class Database {
 
     async updatePatient(patient: Patient, options?: { addOwners: string[] }): Promise<string> {
         if (patient._id !== null && !patient.isDirty) { return patient._id }
-
         if (patient._id === null) { patient._id = util.genID('p') }
-        patient._rev = (await this.localDatabase.put(patient.serialize())).rev
+
+        const transaction = this.localDatabase.rawTransaction(['clients', 'patients'], 'readwrite')
+        await this.localDatabase.put('patients', patient.serialize(), transaction)
 
         // Add the patient's owners
         if (options && options.addOwners) {
             const clients = await this.getClients(options.addOwners)
-            const updateDocs = clients.map((c) => {
-                c.addPet(patient._id)
-                return c.serialize()
-            })
-
-            await this.localDatabase.bulkDocs(updateDocs)
+            for (let client of clients) {
+                client.addPet(patient._id)
+                await this.localDatabase.put('clients', client.serialize(), transaction)
+            }
         }
 
         patient.clearDirty()
@@ -332,31 +272,21 @@ export default class Database {
         return new SearchResults(clients, patients, new Set<string>())
     }
 
-    async showRandom(): Promise<SearchResults> {
-        // Just list the first hundred clients for now
-        const results = await this.localDatabase.allDocs({
-            include_docs: true,
-            startkey: 'c-',
-            endkey: 'c-\uffff',
-            limit: DEFAULT_LIMIT
-        })
-
-        const clients = results.rows.map((row) => Client.deserialize(row.doc))
-        return this.populateResultsFromClients(clients)
-    }
-
     async showUpcoming(): Promise<SearchResults> {
-        const results = await this.localDatabase.query('index/upcoming', {
-            include_docs: true,
-            startkey: moment().toISOString(),
-            limit: DEFAULT_LIMIT
-        })
+        const results = await this.localDatabase.query<patient.ISerializedPatient>(
+            'patients',
+            'visitDates',
+            IDBKeyRange.lowerBound(moment().toISOString()),
+            {
+                limit: DEFAULT_LIMIT,
+                direction: 'next'
+            })
 
         const matchedPatients = new Set<string>()
         const patients = new Map<string, Patient>()
-        for (let row of results.rows) {
-            matchedPatients.add(row.doc._id)
-            patients.set(row.doc._id, Patient.deserialize(row.doc))
+        for (let doc of results) {
+            matchedPatients.add(doc._id)
+            patients.set(doc._id, Patient.deserialize(doc))
         }
         const clients = await this.getOwners(Array.from(matchedPatients))
 
@@ -380,56 +310,86 @@ export default class Database {
     async fullTextSearch(query: string): Promise<SearchResults> {
         const results = (await this.textSearch.search(query)).slice(0, DEFAULT_LIMIT)
         const clientIDs = results.map((r: any) => r.ref)
-
         const clients = await this.getClients(clientIDs)
 
         return this.populateResultsFromClients(clients)
     }
 
     async search(query: string): Promise<SearchResults> {
-        if (query === '' || query === 'upcoming') {
-            return await this.showUpcoming()
-        } else if (query === 'random') {
-            return await this.showRandom()
-        } else {
-            return await this.fullTextSearch(query)
+        const timer = new util.Timer()
+        try {
+            if (query === '' || query === 'upcoming') {
+                return await this.showUpcoming()
+            } else {
+                return await this.fullTextSearch(query)
+            }
+        } finally {
+            timer.log(`Search "${query}"`)
         }
     }
 
     async importData(data: { clients: any[], patients: any[] }): Promise<void> {
-        const patientIDMap = new Map<string, string>()
-        for (let rawPatient of data.patients) {
-            try {
-                rawPatient.type = 'patient'
-                rawPatient._id = null
-                rawPatient.visits = rawPatient.visits.map((v: any) => {
-                    v.id = util.genID('v')
-                    v.kg = v.weight / 1000
-                    v.tasks = {}
-                    return v
-                })
-                const patient = Patient.deserialize(rawPatient)
-                await this.updatePatient(patient)
-                patientIDMap.set(rawPatient.id, patient._id)
-            } catch (err) {
-                console.error(err)
+        try {
+            this.enterBatchMode()
+
+            const patientIDMap = new Map<string, string>()
+            for (let rawPatient of data.patients) {
+                try {
+                    rawPatient.type = 'patient'
+                    rawPatient._id = null
+                    rawPatient.visits = rawPatient.visits.map((v: any) => {
+                        v.id = util.genID('v')
+                        v.kg = v.weight / 1000
+                        v.tasks = {}
+                        return v
+                    })
+                    const patient = Patient.deserialize(rawPatient)
+                    await this.updatePatient(patient)
+                    patientIDMap.set(rawPatient.id, patient._id)
+                } catch (err) {
+                    console.error(err)
+                }
             }
+
+            for (let rawClient of data.clients) {
+                try {
+                    rawClient.type = 'client'
+                    rawClient._id = null
+                    rawClient.pets = rawClient.pets.map((id: string) => patientIDMap.get(id))
+                        .filter((id: string) => id !== undefined && id !== null)
+                    rawClient.phone = rawClient.phone.map((phone: [string, string]) => {
+                        return { number: phone[0], note: phone[1] }
+                    })
+                    const client = Client.deserialize(rawClient)
+                    await this.updateClient(client)
+                } catch (err) {
+                    console.error(err)
+                }
+            }
+        } finally {
+            await this.exitBatchMode()
+        }
+    }
+
+    // This is ONLY offered for debugging console use
+    protected async destroy(idiotProof: string): Promise<void> {
+        if (idiotProof !== 'Yes I am sure that I want to delete vetshelf') {
+            throw new Error('Declined')
         }
 
-        for (let rawClient of data.clients) {
-            try {
-                rawClient.type = 'client'
-                rawClient._id = null
-                rawClient.pets = rawClient.pets.map((id: string) => patientIDMap.get(id))
-                    .filter((id: string) => id !== undefined && id !== null)
-                rawClient.phone = rawClient.phone.map((phone: [string, string]) => {
-                    return { number: phone[0], note: phone[1] }
-                })
-                const client = Client.deserialize(rawClient)
-                await this.updateClient(client)
-            } catch (err) {
-                console.error(err)
-            }
-        }
+        await this.textSearch.clearCache()
+        await this.localDatabase.destroy()
+
+        console.warn('Deleted vetshelf')
+    }
+
+    private enterBatchMode(): void {
+        this.batchMode += 1
+    }
+
+    private exitBatchMode() {
+        this.batchMode -= 1
+        if (this.batchMode < 0) { this.batchMode = 0 }
+        return this.ensureIndexes()
     }
 }

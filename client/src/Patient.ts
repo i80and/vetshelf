@@ -25,7 +25,7 @@ class TaskIntervals {
 
 type patientID = string
 
-interface ISerializedPatient {
+export interface ISerializedPatient {
     type: string,
     _id: patientID,
     _rev: string,
@@ -37,6 +37,7 @@ interface ISerializedPatient {
     note: string,
     active: boolean
     visits: any[]
+    visitDates: string[]
     due: { [s: string]: string }
 }
 
@@ -262,6 +263,7 @@ export default class Patient {
             active: this.active,
 
             visits: this._visits.map((v) => v.serialize()),
+            visitDates: this._visits.map((v) => v.date.toISOString()),
             due: dueDates
         }
     }
