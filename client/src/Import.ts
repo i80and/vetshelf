@@ -18,9 +18,7 @@ export class ViewModel {
             const data = JSON.parse(reader.result)
             console.log('Starting import')
             await this.database.importData(data)
-            console.log('Done importing! Building indexes...')
-            await this.database.ensureIndexes()
-            console.log('Done building indexes!')
+            console.log('Done importing!')
         }
         reader.readAsText(file)
     }
