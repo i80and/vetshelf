@@ -5,7 +5,7 @@
   "dependencies": {
     "rollup": "0.25",
     "typescript": "1.8",
-    "tslint": "3.6",
+    "tslint": "3.7",
     "typescript-formatter": "2.1",
     "jshint": "2.9.1"
   },
